@@ -1,0 +1,13 @@
+[Unit]
+Description=Exporting WS90 metrics to Prometheus
+After=network-online.target
+Wants=network-online.target
+Documentation=https://github.com/peckato1/ws90-prometheus
+
+[Service]
+Type=simple
+PIDFile=/run/ws90-prometheus.pid
+ExecStart=/usr/local/bin/ws90-prometheus
+
+[Install]
+WantedBy=multi-user.target

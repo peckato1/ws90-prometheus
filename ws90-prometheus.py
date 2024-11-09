@@ -100,6 +100,7 @@ class WS90Metrics(threading.Thread):
                 self.rain_total.set(data['rain_mm'] / 1000)
 
         p.wait()
+        logger.debug(f'rtl_433 exited with code {p.returncode}')
 
 
 def as_number(value, allow_hex=False):

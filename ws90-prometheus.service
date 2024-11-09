@@ -8,6 +8,7 @@ Documentation=https://github.com/peckato1/ws90-prometheus
 Type=simple
 PIDFile=/run/ws90-prometheus.pid
 ExecStart=/usr/local/bin/ws90-prometheus
+Restart=always
 
 [Install]
 WantedBy=multi-user.target

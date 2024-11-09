@@ -1,11 +1,26 @@
 #!/usr/bin/env python
 
+"""
+WS90 Prometheus exporter
+
+Usage:
+    ws90-prometheus.py --id=<id> [--port=<port>]
+    ws90-prometheus.py --help
+
+Options:
+    --id=<id>       Device ID. Can be decimal or hex (prefix with 0x)
+    --port=<port>   Port to listen on [default: 8000]
+    --help          Show this screen
+"""
+
+
 import json
 import subprocess
 import prometheus_client as prom
 import threading
 import logging
 import systemd.journal
+import docopt
 
 
 logger = logging.getLogger(__name__)
@@ -14,8 +29,11 @@ logger.setLevel(logging.DEBUG)
 
 
 class WS90Metrics(threading.Thread):
-    def __init__(self):
+    def __init__(self, device_id):
         super().__init__()
+
+        logger.info(f'Initializing WS90Metrics with device ID {device_id} (0x{device_id:x})')
+        self.device_id = device_id
 
         self.temp = prom.Gauge('ws90_temperature_celsius', 'Temperature in Celsius')
         self.humidity = prom.Gauge('ws90_humidity_ratio', 'Humidity in percent')
@@ -46,6 +64,10 @@ class WS90Metrics(threading.Thread):
                 if data.get('model', None) != 'Fineoffset-WS90':
                     continue
 
+                if data.get('id', None) != self.device_id:
+                    logger.debug(f'Received message from ID {data["id"]} (0x{data["id"]:x}), expected {self.device_id}')
+                    continue
+
                 self.model.info({
                     'model': data['model'],
                     'id': str(data['id']),
@@ -66,9 +88,25 @@ class WS90Metrics(threading.Thread):
         p.wait()
 
 
+def as_number(value, allow_hex=False):
+    try:
+        return int(value)
+    except ValueError:
+        pass
+
+    try:
+        if allow_hex and value.startswith('0x'):
+            return int(value, 16)
+    except ValueError:
+        pass
+    raise docopt.DocoptExit(f'Invalid number: {value}')
+
 if __name__ == '__main__':
-    t = WS90Metrics()
+    args = docopt.docopt(__doc__, version='WS90 Prometheus exporter')
+
+    t = WS90Metrics(as_number(args['--id'], allow_hex=True))
     t.start()
 
-    logger.info('Starting Prometheus HTTP server')
-    prom.start_http_server(8000)
+    port = as_number(args['--port'])
+    logger.info('Starting Prometheus HTTP server on port %s', port)
+    prom.start_http_server(port)

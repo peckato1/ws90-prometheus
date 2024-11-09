@@ -32,7 +32,10 @@ def init_logging(log_type):
     if log_type == 'systemd':
         logger.addHandler(systemd.journal.JournalHandler())
     elif log_type == 'stderr':
-        logger.addHandler(logging.StreamHandler(sys.stderr))
+        handler = logging.StreamHandler(sys.stderr)
+        formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
     else:
         raise docopt.DocoptExit(f'Invalid log type: {log_type}')
 

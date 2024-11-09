@@ -4,13 +4,14 @@
 WS90 Prometheus exporter
 
 Usage:
-    ws90-prometheus.py --id=<id> [--port=<port>]
+    ws90-prometheus.py --id=<id> [--port=<port>] [--log=<systemd|stdout>]
     ws90-prometheus.py --help
 
 Options:
-    --id=<id>       Device ID. Can be decimal or hex (prefix with 0x)
-    --port=<port>   Port to listen on [default: 8000]
-    --help          Show this screen
+    --id=<id>               Device ID. Can be decimal or hex (prefix with 0x)
+    --port=<port>           Port to listen on [default: 8000]
+    --log=<systemd|stderr>  Log to systemd journal or stderr [default: stderr]
+    --help                  Show this screen
 """
 
 
@@ -21,11 +22,21 @@ import threading
 import logging
 import systemd.journal
 import docopt
+import sys
 
 
 logger = logging.getLogger(__name__)
-logger.addHandler(systemd.journal.JournalHandler())
-logger.setLevel(logging.DEBUG)
+
+
+def init_logging(log_type):
+    if log_type == 'systemd':
+        logger.addHandler(systemd.journal.JournalHandler())
+    elif log_type == 'stderr':
+        logger.addHandler(logging.StreamHandler(sys.stderr))
+    else:
+        raise docopt.DocoptExit(f'Invalid log type: {log_type}')
+
+    logger.setLevel(logging.DEBUG)
 
 
 class WS90Metrics(threading.Thread):
@@ -103,6 +114,8 @@ def as_number(value, allow_hex=False):
 
 if __name__ == '__main__':
     args = docopt.docopt(__doc__, version='WS90 Prometheus exporter')
+
+    init_logging(args['--log'])
 
     t = WS90Metrics(as_number(args['--id'], allow_hex=True))
     t.start()

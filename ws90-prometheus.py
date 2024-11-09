@@ -4,6 +4,13 @@ import json
 import subprocess
 import prometheus_client as prom
 import threading
+import logging
+import systemd.journal
+
+
+logger = logging.getLogger(__name__)
+logger.addHandler(systemd.journal.JournalHandler())
+logger.setLevel(logging.DEBUG)
 
 
 class WS90Metrics(threading.Thread):
@@ -24,16 +31,17 @@ class WS90Metrics(threading.Thread):
         self.model = prom.Info('ws90_model', 'Model description')
 
     def run(self):
-        with subprocess.Popen(['rtl_433', '-Y', 'minmax', '-f', '868.3M', '-F', 'json'],
+        cmd = ['rtl_433', '-Y', 'minmax', '-f', '868.3M', '-F', 'json']
+        logger.info('Started WS90 Prometheus exporter')
+        logger.debug(f'Reading using command {cmd}')
+        with subprocess.Popen(cmd,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.DEVNULL,
                               bufsize=1,
                               universal_newlines=True) as p:
             for line in p.stdout:
-                print(line)
                 data = json.loads(line)
-
-                print(f'Data @ {data['time']}')
+                logger.debug(f'Received data {data}')
 
                 self.model.info({
                     'model': data['model'],
@@ -58,5 +66,6 @@ class WS90Metrics(threading.Thread):
 if __name__ == '__main__':
     t = WS90Metrics()
     t.start()
-    print("Starting server")
+
+    logger.info('Starting Prometheus HTTP server')
     prom.start_http_server(8000)

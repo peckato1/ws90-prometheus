@@ -4,11 +4,11 @@
 WS90 Prometheus exporter
 
 Usage:
-    ws90-prometheus.py --id=<id> [--port=<port>] [--log=<systemd|stdout>] [--log-level=<level>]
+    ws90-prometheus.py [--id=<id>]... [--port=<port>] [--log=<systemd|stdout>] [--log-level=<level>]
     ws90-prometheus.py --help
 
 Options:
-    --id=<id>               Device ID. Can be decimal or hex (prefix with 0x)
+    --id=<id>               Device ID. Can be decimal or hex (prefix with 0x). Can specify multiple times. If not specified, all devices are being monitored.
     --port=<port>           Port to listen on [default: 8000]
     --log=<systemd|stderr>  Log to systemd journal or stderr [default: stderr]
     --log-level=<level>     Log level (debug, info, warning, error) [default: info]
@@ -54,11 +54,16 @@ def init_logging(log_type, log_level):
 
 
 class WS90Metrics(threading.Thread):
-    def __init__(self, device_id):
+    def __init__(self, device_ids):
         super().__init__()
 
-        logger.info(f'Initializing WS90Metrics with device ID {device_id} (0x{device_id:x})')
-        self.device_id = device_id
+        logger.info(f'Initializing WS90Metrics')
+        self.device_ids = device_ids
+
+        if len(self.device_ids) == 0:
+            logger.info('Listening messages from all devices')
+        else:
+            logger.info(f'Listening messages from devices with ids: {self.device_ids}')
 
         self.temp = prom.Gauge('ws90_temperature_celsius', 'Temperature in Celsius')
         self.humidity = prom.Gauge('ws90_humidity_ratio', 'Humidity in percent')
@@ -115,8 +120,12 @@ class WS90Metrics(threading.Thread):
         if data.get('model', None) != 'Fineoffset-WS90':
             return
 
-        if data.get('id', None) != self.device_id:
-            logger.debug(f'Received message from ID {data["id"]} (0x{data["id"]:x}), expected {self.device_id}')
+        if 'id' not in data:
+            logger.error(f'No ID in received data: {data}')
+            return
+
+        if len(self.device_ids) > 0 and data['id'] not in self.device_ids:
+            logger.debug(f'Received message from ID {data["id"]} (0x{data["id"]:x}), expected one of {self.device_ids}')
             return
 
         logger.debug(f'Received data {data}')
@@ -166,7 +175,7 @@ if __name__ == '__main__':
 
     init_logging(args['--log'], args['--log-level'])
 
-    t = WS90Metrics(as_number(args['--id'], allow_hex=True))
+    t = WS90Metrics(list(map(lambda x: as_number(x, allow_hex=True), args['--id'])))
     t.start()
 
     port = as_number(args['--port'])

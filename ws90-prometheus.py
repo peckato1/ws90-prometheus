@@ -72,35 +72,37 @@ class WS90Metrics(threading.Thread):
                               bufsize=1,
                               universal_newlines=True) as p:
             for line in p.stdout:
-                data = json.loads(line)
-                logger.debug(f'Received data {data}')
-
-                if data.get('model', None) != 'Fineoffset-WS90':
-                    continue
-
-                if data.get('id', None) != self.device_id:
-                    logger.debug(f'Received message from ID {data["id"]} (0x{data["id"]:x}), expected {self.device_id}')
-                    continue
-
-                self.model.info({
-                    'model': data['model'],
-                    'id': str(data['id']),
-                    'firmware': str(data['firmware'])})
-
-                self.temp.set(data['temperature_C'])
-                self.humidity.set(data['humidity'])
-                self.battery_perc.set(data['battery_ok'])
-                self.battery_volt.set(data['battery_mV'] / 1000)
-                self.supercapacitator_volt.set(data['supercap_V'])
-                self.wind_dir.set(data['wind_dir_deg'])
-                self.wind_avg.set(data['wind_avg_m_s'])
-                self.wind_gust.set(data['wind_max_m_s'])
-                self.uvi.set(data['uvi'])
-                self.light.set(data['light_lux'])
-                self.rain_total.set(data['rain_mm'] / 1000)
+                self.process_data(json.loads(line))
 
         p.wait()
         logger.debug(f'rtl_433 exited with code {p.returncode}')
+
+    def process_data(self, data):
+        if data.get('model', None) != 'Fineoffset-WS90':
+            return
+
+        if data.get('id', None) != self.device_id:
+            logger.debug(f'Received message from ID {data["id"]} (0x{data["id"]:x}), expected {self.device_id}')
+            return
+
+        logger.debug(f'Received data {data}')
+
+        self.model.info({
+            'model': data['model'],
+            'id': str(data['id']),
+            'firmware': str(data['firmware'])})
+
+        self.temp.set(data['temperature_C'])
+        self.humidity.set(data['humidity'])
+        self.battery_perc.set(data['battery_ok'])
+        self.battery_volt.set(data['battery_mV'] / 1000)
+        self.supercapacitator_volt.set(data['supercap_V'])
+        self.wind_dir.set(data['wind_dir_deg'])
+        self.wind_avg.set(data['wind_avg_m_s'])
+        self.wind_gust.set(data['wind_max_m_s'])
+        self.uvi.set(data['uvi'])
+        self.light.set(data['light_lux'])
+        self.rain_total.set(data['rain_mm'] / 1000)
 
 
 def as_number(value, allow_hex=False):

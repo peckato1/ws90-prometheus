@@ -68,14 +68,37 @@ class WS90Metrics(threading.Thread):
         logger.debug(f'Reading using command {cmd}')
         with subprocess.Popen(cmd,
                               stdout=subprocess.PIPE,
-                              stderr=subprocess.DEVNULL,
+                              stderr=subprocess.PIPE,
                               bufsize=1,
                               universal_newlines=True) as p:
-            for line in p.stdout:
-                self.process_data(json.loads(line))
+            t1 = threading.Thread(
+                    target=self.read_stream,
+                    args=(p.stdout, self.read_stdout))
+
+            t2 = threading.Thread(
+                    target=self.read_stream,
+                    args=(p.stderr, self.read_stderr))
+
+            t1.start()
+            t2.start()
+
+            t1.join()
+            t2.join()
 
         p.wait()
         logger.debug(f'rtl_433 exited with code {p.returncode}')
+
+    def read_stdout(self, line):
+        try:
+            data = json.loads(line)
+            self.process_data(data)
+        except json.JSONDecodeError:
+            logger.error(f'Failed to parse JSON output: {line.strip()}')
+
+    def read_stderr(self, line):
+        line = line.strip()
+        if line != '':
+            logger.warning(f'rtl_433: {line}')
 
     def process_data(self, data):
         if data.get('model', None) != 'Fineoffset-WS90':
@@ -103,6 +126,14 @@ class WS90Metrics(threading.Thread):
         self.uvi.set(data['uvi'])
         self.light.set(data['light_lux'])
         self.rain_total.set(data['rain_mm'] / 1000)
+
+    def read_stream(self, stream, callback):
+        try:
+            with stream:
+                for line in stream:
+                    callback(line)
+        except ValueError:
+            pass
 
 
 def as_number(value, allow_hex=False):

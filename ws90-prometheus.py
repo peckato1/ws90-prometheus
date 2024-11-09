@@ -43,6 +43,9 @@ class WS90Metrics(threading.Thread):
                 data = json.loads(line)
                 logger.debug(f'Received data {data}')
 
+                if data.get('model', None) != 'Fineoffset-WS90':
+                    continue
+
                 self.model.info({
                     'model': data['model'],
                     'id': str(data['id']),

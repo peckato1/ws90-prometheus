@@ -34,7 +34,7 @@ def init_logging(log_type, log_level):
         logger.addHandler(systemd.journal.JournalHandler())
     elif log_type == 'stderr':
         handler = logging.StreamHandler(sys.stderr)
-        formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(message)s')
+        formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)8s - %(message)s')
         handler.setFormatter(formatter)
         logger.addHandler(handler)
     else:
@@ -57,13 +57,12 @@ class WS90Metrics(threading.Thread):
     def __init__(self, device_ids):
         super().__init__()
 
-        logger.info(f'Initializing WS90Metrics')
         self.device_ids = device_ids
 
         if len(self.device_ids) == 0:
-            logger.info('Listening messages from all devices')
+            logger.info('ws90: Listening messages from all devices')
         else:
-            logger.info(f'Listening messages from devices with ids: {self.device_ids}')
+            logger.info(f'ws90: Listening messages from devices with ids: {self.device_ids}')
 
         self.temp = prom.Gauge('ws90_temperature_celsius', 'Temperature in Celsius')
         self.humidity = prom.Gauge('ws90_humidity_ratio', 'Humidity in percent')
@@ -80,8 +79,8 @@ class WS90Metrics(threading.Thread):
 
     def run(self):
         cmd = ['rtl_433', '-Y', 'minmax', '-f', '868.3M', '-F', 'json']
-        logger.info('Started WS90 Prometheus exporter')
-        logger.debug(f'Reading using command {cmd}')
+        logger.debug(f'ws90: Will listen for data using {cmd}')
+        logger.info('ws90: Listening for data')
         with subprocess.Popen(cmd,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,
@@ -102,14 +101,14 @@ class WS90Metrics(threading.Thread):
             t2.join()
 
         p.wait()
-        logger.debug(f'rtl_433 exited with code {p.returncode}')
+        logger.debug(f'ws90: rtl_433 exited with code {p.returncode}')
 
     def read_stdout(self, line):
         try:
             data = json.loads(line)
             self.process_data(data)
         except json.JSONDecodeError:
-            logger.error(f'Failed to parse JSON output: {line.strip()}')
+            logger.error(f"ws90: Failed to parse rtl_433's json output: {line.strip()}")
 
     def read_stderr(self, line):
         line = line.strip()
@@ -121,14 +120,14 @@ class WS90Metrics(threading.Thread):
             return
 
         if 'id' not in data:
-            logger.error(f'No ID in received data: {data}')
+            logger.error(f'ws90: No ID in received data: {data}')
             return
 
         if len(self.device_ids) > 0 and data['id'] not in self.device_ids:
-            logger.debug(f'Received message from ID {data["id"]} (0x{data["id"]:x}), expected one of {self.device_ids}')
+            logger.debug(f'ws90: Received message from ID {data["id"]} (0x{data["id"]:x}), expected one of {self.device_ids}. Ignoring.')
             return
 
-        logger.debug(f'Received data {data}')
+        logger.debug(f'ws90: Received data {data}')
 
         self.model.info({
             'model': data['model'],
@@ -179,5 +178,5 @@ if __name__ == '__main__':
     t.start()
 
     port = as_number(args['--port'])
-    logger.info('Starting Prometheus HTTP server on port %s', port)
+    logger.info('prometheus: Starting HTTP server on port %s', port)
     prom.start_http_server(port)

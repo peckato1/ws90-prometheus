@@ -160,6 +160,7 @@ def as_number(value, allow_hex=False):
         pass
     raise docopt.DocoptExit(f'Invalid number: {value}')
 
+
 if __name__ == '__main__':
     args = docopt.docopt(__doc__, version='WS90 Prometheus exporter')
 

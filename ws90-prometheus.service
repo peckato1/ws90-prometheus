@@ -7,7 +7,7 @@ Documentation=https://github.com/peckato1/ws90-prometheus
 [Service]
 Type=simple
 PIDFile=/run/ws90-prometheus.pid
-ExecStart=/usr/bin/ws90-prometheus --log=systemd
+ExecStart=/usr/bin/ws90-prometheus --log=systemd --clear 120
 Restart=always
 
 [Install]

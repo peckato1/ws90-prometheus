@@ -73,9 +73,9 @@ def random_data(device_ids):
 def run(device_ids, count, interval):
     i = 0
     while count == 0 or i < count:
+        time.sleep(interval)
         data = random_data(device_ids)
         print(json.dumps(dataclasses.asdict(data)))
-        time.sleep(interval)
         i += 1
 
 

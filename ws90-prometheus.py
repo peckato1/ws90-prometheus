@@ -4,14 +4,21 @@
 WS90 Prometheus exporter
 
 Usage:
-    ws90-prometheus.py [--id=<id>]... [--port=<port>] [--log=<systemd|stdout>] [--log-level=<level>] [--cmd=<cmd>]
+    ws90-prometheus.py
+        [--id=<id>]...
+        [--port=<port>]
+        [--clear=<clear>]
+        [--log=<systemd|stdout>]
+        [--log-level=<level>]
+        [--cmd=<cmd>]
     ws90-prometheus.py --help
 
 Options:
     --id=<id>               Device ID. Can be decimal or hex (prefix with 0x). Can specify multiple times. If not specified, all devices are being monitored.
     --port=<port>           Port to listen on [default: 8000]
-    --log=<systemd|stderr>  Log to systemd journal or stderr [default: stderr]
     --log-level=<level>     Log level (debug, info, warning, error) [default: info]
+    --clear=<clear>         Remove metrics for device after <clear> seconds. 0 for never. Useful for purging outdated metrics when the receiver stops receiving new data for a device. [default: 120]
+    --log=<systemd|stderr>  Log to systemd journal or stderr [default: stderr]
     --cmd=<cmd>             Command to run [default: rtl_433 -Y minmax -f 868.3M -F json]
     --help                  Show this screen
 """
@@ -28,6 +35,24 @@ import sys
 
 
 logger = logging.getLogger(__name__)
+
+
+class ResettableTimer:
+    def __init__(self, interval, function, args=None):
+        self.interval = interval
+        self.function = function
+        self.args = args if args is not None else tuple()
+        self.timer = None
+
+    def _start_timer(self):
+        self.timer = threading.Timer(self.interval, self.function, self.args)
+        self.timer.start()
+
+    def start(self):
+        if self.timer is not None:
+            self.timer.cancel()
+            self.timer = None
+        self._start_timer()
 
 
 def init_logging(log_type, log_level):
@@ -55,11 +80,13 @@ def init_logging(log_type, log_level):
 
 
 class WS90Metrics(threading.Thread):
-    def __init__(self, cmd, device_ids):
+    def __init__(self, cmd, device_ids, clear_interval):
         super().__init__()
 
         self.cmd = self._parse_cmd(cmd)
         self.device_ids = device_ids
+        self.clear_interval = clear_interval
+        self.timers = dict()
 
         if len(self.device_ids) == 0:
             logger.info('ws90: Listening messages from all devices')
@@ -78,6 +105,7 @@ class WS90Metrics(threading.Thread):
         self.light = prom.Gauge('ws90_light_lux', 'Light in lux', ['id'])
         self.rain_total = prom.Gauge('ws90_rain_m', 'Total rain', ['id'])
         self.model = prom.Info('ws90_model', 'Model description', ['model', 'id', 'firmware'])
+        self.last_sync = None
 
     def _parse_cmd(self, cmd):
         return cmd.split()
@@ -147,6 +175,33 @@ class WS90Metrics(threading.Thread):
         self.uvi.labels(device_id).set(data['uvi'])
         self.light.labels(device_id).set(data['light_lux'])
         self.rain_total.labels(device_id).set(data['rain_mm'] / 1000)
+        self.set_timer(data['model'], device_id, data['firmware'])
+
+    def set_timer(self, model, device_id, firmware):
+        if self.clear_interval == 0:
+            return
+
+        if device_id not in self.timers:
+            self.timers[device_id] = ResettableTimer(self.clear_interval, self.clear_metrics,
+                                                     args=(model, device_id, firmware, ))
+
+        self.timers[device_id].start()
+
+    def clear_metrics(self, model, device_id, firmware):
+        logger.debug(f'ws90: Clearing metrics for device {device_id}')
+
+        self.temp.remove(device_id)
+        self.humidity.remove(device_id)
+        self.battery_perc.remove(device_id)
+        self.battery_volt.remove(device_id)
+        self.supercapacitator_volt.remove(device_id)
+        self.wind_dir.remove(device_id)
+        self.wind_avg.remove(device_id)
+        self.wind_gust.remove(device_id)
+        self.uvi.remove(device_id)
+        self.light.remove(device_id)
+        self.rain_total.remove(device_id)
+        self.model.remove(model, device_id, firmware)
 
     def read_stream(self, stream, callback):
         try:
@@ -178,7 +233,8 @@ if __name__ == '__main__':
 
     t = WS90Metrics(
             cmd=args['--cmd'],
-            device_ids=list(map(lambda x: as_number(x, allow_hex=True), args['--id'])))
+            device_ids=list(map(lambda x: as_number(x, allow_hex=True), args['--id'])),
+            clear_interval=int(args['--clear']))
     t.start()
 
     port = as_number(args['--port'])

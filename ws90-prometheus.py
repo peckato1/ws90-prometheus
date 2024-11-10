@@ -4,7 +4,7 @@
 WS90 Prometheus exporter
 
 Usage:
-    ws90-prometheus.py [--id=<id>]... [--port=<port>] [--log=<systemd|stdout>] [--log-level=<level>]
+    ws90-prometheus.py [--id=<id>]... [--port=<port>] [--log=<systemd|stdout>] [--log-level=<level>] [--cmd=<cmd>]
     ws90-prometheus.py --help
 
 Options:
@@ -12,6 +12,7 @@ Options:
     --port=<port>           Port to listen on [default: 8000]
     --log=<systemd|stderr>  Log to systemd journal or stderr [default: stderr]
     --log-level=<level>     Log level (debug, info, warning, error) [default: info]
+    --cmd=<cmd>             Command to run [default: rtl_433 -Y minmax -f 868.3M -F json]
     --help                  Show this screen
 """
 
@@ -54,9 +55,10 @@ def init_logging(log_type, log_level):
 
 
 class WS90Metrics(threading.Thread):
-    def __init__(self, device_ids):
+    def __init__(self, cmd, device_ids):
         super().__init__()
 
+        self.cmd = self._parse_cmd(cmd)
         self.device_ids = device_ids
 
         if len(self.device_ids) == 0:
@@ -77,11 +79,13 @@ class WS90Metrics(threading.Thread):
         self.rain_total = prom.Gauge('ws90_rain_m', 'Total rain')
         self.model = prom.Info('ws90_model', 'Model description')
 
+    def _parse_cmd(self, cmd):
+        return cmd.split()
+
     def run(self):
-        cmd = ['rtl_433', '-Y', 'minmax', '-f', '868.3M', '-F', 'json']
-        logger.debug(f'ws90: Will listen for data using {cmd}')
+        logger.debug(f'ws90: Will listen for data using {self.cmd}')
         logger.info('ws90: Listening for data')
-        with subprocess.Popen(cmd,
+        with subprocess.Popen(self.cmd,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE,
                               bufsize=1,
@@ -174,7 +178,9 @@ if __name__ == '__main__':
 
     init_logging(args['--log'], args['--log-level'])
 
-    t = WS90Metrics(list(map(lambda x: as_number(x, allow_hex=True), args['--id'])))
+    t = WS90Metrics(
+            cmd=args['--cmd'],
+            device_ids=list(map(lambda x: as_number(x, allow_hex=True), args['--id'])))
     t.start()
 
     port = as_number(args['--port'])

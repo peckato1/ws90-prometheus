@@ -66,18 +66,18 @@ class WS90Metrics(threading.Thread):
         else:
             logger.info(f'ws90: Listening messages from devices with ids: {self.device_ids}')
 
-        self.temp = prom.Gauge('ws90_temperature_celsius', 'Temperature in Celsius')
-        self.humidity = prom.Gauge('ws90_humidity_ratio', 'Humidity in percent')
-        self.battery_perc = prom.Gauge('ws90_battery_ratio', 'Battery percent')
-        self.battery_volt = prom.Gauge('ws90_battery_volts', 'Battery voltage')
-        self.supercapacitator_volt = prom.Gauge('ws90_supercap_volts', 'Supercap voltage')
-        self.wind_dir = prom.Gauge('ws90_wind_dir_degrees', 'Wind direction in degrees')
-        self.wind_avg = prom.Gauge('ws90_wind_avg_speed', 'Wind speed in m/s')
-        self.wind_gust = prom.Gauge('ws90_wind_gust_speed', 'Wind gust speed in m/s')
-        self.uvi = prom.Gauge('ws90_uvi', 'UV index')
-        self.light = prom.Gauge('ws90_light_lux', 'Light in lux')
-        self.rain_total = prom.Gauge('ws90_rain_m', 'Total rain')
-        self.model = prom.Info('ws90_model', 'Model description')
+        self.temp = prom.Gauge('ws90_temperature_celsius', 'Temperature in Celsius', ['id'])
+        self.humidity = prom.Gauge('ws90_humidity_ratio', 'Humidity in percent', ['id'])
+        self.battery_perc = prom.Gauge('ws90_battery_ratio', 'Battery percent', ['id'])
+        self.battery_volt = prom.Gauge('ws90_battery_volts', 'Battery voltage', ['id'])
+        self.supercapacitator_volt = prom.Gauge('ws90_supercap_volts', 'Supercap voltage', ['id'])
+        self.wind_dir = prom.Gauge('ws90_wind_dir_degrees', 'Wind direction in degrees', ['id'])
+        self.wind_avg = prom.Gauge('ws90_wind_avg_speed', 'Wind speed in m/s', ['id'])
+        self.wind_gust = prom.Gauge('ws90_wind_gust_speed', 'Wind gust speed in m/s', ['id'])
+        self.uvi = prom.Gauge('ws90_uvi', 'UV index', ['id'])
+        self.light = prom.Gauge('ws90_light_lux', 'Light in lux', ['id'])
+        self.rain_total = prom.Gauge('ws90_rain_m', 'Total rain', ['id'])
+        self.model = prom.Info('ws90_model', 'Model description', ['model', 'id', 'firmware'])
 
     def _parse_cmd(self, cmd):
         return cmd.split()
@@ -127,28 +127,26 @@ class WS90Metrics(threading.Thread):
             logger.error(f'ws90: No ID in received data: {data}')
             return
 
-        if len(self.device_ids) > 0 and data['id'] not in self.device_ids:
+        device_id = data['id']
+        if len(self.device_ids) > 0 and device_id not in self.device_ids:
             logger.debug(f'ws90: Received message from ID {data["id"]} (0x{data["id"]:x}), expected one of {self.device_ids}. Ignoring.')
             return
 
         logger.debug(f'ws90: Received data {data}')
 
-        self.model.info({
-            'model': data['model'],
-            'id': str(data['id']),
-            'firmware': str(data['firmware'])})
+        self.model.labels(data['model'], data['id'], data['firmware']).info({})
 
-        self.temp.set(data['temperature_C'])
-        self.humidity.set(data['humidity'])
-        self.battery_perc.set(data['battery_ok'])
-        self.battery_volt.set(data['battery_mV'] / 1000)
-        self.supercapacitator_volt.set(data['supercap_V'])
-        self.wind_dir.set(data['wind_dir_deg'])
-        self.wind_avg.set(data['wind_avg_m_s'])
-        self.wind_gust.set(data['wind_max_m_s'])
-        self.uvi.set(data['uvi'])
-        self.light.set(data['light_lux'])
-        self.rain_total.set(data['rain_mm'] / 1000)
+        self.temp.labels(device_id).set(data['temperature_C'])
+        self.humidity.labels(device_id).set(data['humidity'])
+        self.battery_perc.labels(device_id).set(data['battery_ok'])
+        self.battery_volt.labels(device_id).set(data['battery_mV'] / 1000)
+        self.supercapacitator_volt.labels(device_id).set(data['supercap_V'])
+        self.wind_dir.labels(device_id).set(data['wind_dir_deg'])
+        self.wind_avg.labels(device_id).set(data['wind_avg_m_s'])
+        self.wind_gust.labels(device_id).set(data['wind_max_m_s'])
+        self.uvi.labels(device_id).set(data['uvi'])
+        self.light.labels(device_id).set(data['light_lux'])
+        self.rain_total.labels(device_id).set(data['rain_mm'] / 1000)
 
     def read_stream(self, stream, callback):
         try:

@@ -8,7 +8,7 @@ Usage:
         [--id=<id>]...
         [--port=<port>]
         [--clear=<clear>]
-        [--log=<systemd|stdout>]
+        [--log=<systemd|stderr>]
         [--log-level=<level>]
         [--cmd=<cmd>]
     ws90-prometheus.py --help

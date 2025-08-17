@@ -239,4 +239,4 @@ if __name__ == '__main__':
 
     port = as_number(args['--port'])
     logger.info('prometheus: Starting HTTP server on port %s', port)
-    prom.start_http_server(port)
+    prom.start_http_server(port, addr="::")

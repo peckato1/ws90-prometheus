@@ -85,30 +85,24 @@ def init_logging(log_type, log_level):
 
 
 class PrometheusPublisher:
-    def __init__(self, clear_interval):
+    def __init__(self, clear_interval, metrics_data, model_data):
         self.clear_interval = clear_interval
         self.timers = dict()
 
-        self.metrics = {
-            "temperature_C": prom.Gauge("ws90_temperature_celsius", "Temperature in Celsius", ["id"]),
-            "humidity": prom.Gauge("ws90_humidity_ratio", "Humidity in percent", ["id"]),
-            "battery_ok": prom.Gauge("ws90_battery_ratio", "Battery percent", ["id"]),
-            "battery_mV": prom.Gauge("ws90_battery_volts", "Battery voltage", ["id"]),
-            "supercap_V": prom.Gauge("ws90_supercap_volts", "Supercap voltage", ["id"]),
-            "wind_dir_deg": prom.Gauge("ws90_wind_dir_degrees", "Wind direction in degrees", ["id"]),
-            "wind_avg_m_s": prom.Gauge("ws90_wind_avg_speed", "Wind speed in m/s", ["id"]),
-            "wind_max_m_s": prom.Gauge("ws90_wind_gust_speed", "Wind gust speed in m/s", ["id"]),
-            "uvi": prom.Gauge("ws90_uvi", "UV index", ["id"]),
-            "light_lux": prom.Gauge("ws90_light_lux", "Light in lux", ["id"]),
-            "rain_mm": prom.Gauge("ws90_rain_m", "Total rain", ["id"]),
-            "rain_start": prom.Gauge("ws90_rain_start", "Rain start info", ["id"]),
-        }
-        self.postprocess = {
-            "rain_mm": lambda x: x / 1000,  # mm to m
-            "battery_mV": lambda x: x / 1000,  # mV to V
-        }
+        self.metrics = dict()
+        self.postprocess = dict()
+        for json_key, name, desc, postprocess in metrics_data:
+            self.metrics[json_key] = prom.Gauge(name, desc, ["id"])
 
-        self.model = prom.Info("ws90_model", "Model description", ["model", "id", "firmware"])
+            if postprocess is not None:
+                self.postprocess[json_key] = postprocess
+
+        self.model_info = dict()
+        self.model_keys = dict()
+        for name, desc, keys in model_data:
+            self.model_info[name] = prom.Info(name, desc, ["id"])
+            self.model_keys[name] = keys
+
         self.last_sync = None
 
     def _postprocess(self, data, key):
@@ -118,7 +112,8 @@ class PrometheusPublisher:
 
     def data_callback(self, data):
         device_id = data["id"]
-        self.model.labels(data["model"], data["id"], data["firmware"]).info({})
+        for k, model_info in self.model_info.items():
+            model_info.labels(device_id).info({k: data[k] for k in self.model_keys[k]})
 
         for k, v in self.metrics.items():
             v.labels(device_id).set(self._postprocess(data, k))
@@ -143,7 +138,8 @@ class PrometheusPublisher:
 
         for _, m in self.metrics.items():
             m.remove(device_id)
-        self.model.remove(model, device_id, firmware)
+        for _, m in self.model_info.items():
+            m.remove(device_id)
 
 
 class WS90Reader(threading.Thread):
@@ -242,6 +238,24 @@ class PrometheusServer(threading.Thread):
         prom.start_http_server(self.port, addr="::")
 
 
+FIELDS = [
+    ("temperature_C", "ws90_temperature_celsius", "Temperature in Celsius", None),
+    ("humidity", "ws90_humidity_ratio", "Humidity in percent", None),
+    ("battery_ok", "ws90_battery_ratio", "Battery percent", None),
+    ("battery_mV", "ws90_battery_volts", "Battery voltage", lambda x: x / 1000),  # mV to V
+    ("supercap_V", "ws90_supercap_volts", "Supercap voltage", None),
+    ("wind_dir_deg", "ws90_wind_dir_degrees", "Wind direction in degrees", None),
+    ("wind_avg_m_s", "ws90_wind_avg_speed", "Wind speed in m/s", None),
+    ("wind_max_m_s", "ws90_wind_gust_speed", "Wind gust speed in m/s", None),
+    ("uvi", "ws90_uvi", "UV index", None),
+    ("light_lux", "ws90_light_lux", "Light in lux", None),
+    ("rain_mm", "ws90_rain_m", "Total rain", lambda x: x / 1000),  # mm to m
+    ("rain_start", "ws90_rain_start", "Rain start info", None),
+]
+FIELDS_MODEL = [
+    ("ws90_model", "Model information", ["firmware", "model"]),
+]
+
 if __name__ == "__main__":
     args = docopt.docopt(__doc__, version="WS90 Prometheus exporter")
 
@@ -249,7 +263,7 @@ if __name__ == "__main__":
 
     sig = blinker.signal("data-received")
 
-    p = PrometheusPublisher(int(args["--clear"]))
+    p = PrometheusPublisher(int(args["--clear"]), FIELDS, FIELDS_MODEL)
     sig.connect(p.data_callback)
 
     exc_watcher = concurrent.futures.Future()

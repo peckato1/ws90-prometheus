@@ -24,6 +24,8 @@ Options:
 """
 
 import asyncio
+import blinker
+import concurrent.futures
 import docopt
 import logging
 import json
@@ -82,19 +84,10 @@ def init_logging(log_type, log_level):
             raise docopt.DocoptExit(f"Invalid log level: {log_level}")
 
 
-class WS90Metrics(threading.Thread):
-    def __init__(self, cmd, device_ids, clear_interval):
-        super().__init__()
-
-        self.cmd = self._parse_cmd(cmd)
-        self.device_ids = device_ids
+class PrometheusPublisher:
+    def __init__(self, clear_interval):
         self.clear_interval = clear_interval
         self.timers = dict()
-
-        if len(self.device_ids) == 0:
-            logger.info("ws90: Listening messages from all devices")
-        else:
-            logger.info(f"ws90: Listening messages from devices with ids: {self.device_ids}")
 
         self.temp = prom.Gauge("ws90_temperature_celsius", "Temperature in Celsius", ["id"])
         self.humidity = prom.Gauge("ws90_humidity_ratio", "Humidity in percent", ["id"])
@@ -110,58 +103,8 @@ class WS90Metrics(threading.Thread):
         self.model = prom.Info("ws90_model", "Model description", ["model", "id", "firmware"])
         self.last_sync = None
 
-    def _parse_cmd(self, cmd):
-        return cmd.split()
-
-    async def _read_stream(self, stream, callback):
-        while True:
-            line = await stream.readline()
-            if not line:
-                break
-            callback(line.decode("utf-8"))
-
-    async def background_job(self):
-        logger.debug(f"ws90: Will listen for data using {self.cmd}")
-        logger.info("ws90: Listening for data")
-        p = await asyncio.create_subprocess_exec(self.cmd[0], *self.cmd[1:], stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
-        await asyncio.gather(
-            self._read_stream(p.stdout, self.read_stdout),
-            self._read_stream(p.stderr, self.read_stderr),
-        )
-
-        await p.wait()
-        logger.debug(f"ws90: rtl_433 exited with code {p.returncode}")
-
-    def run(self):
-        asyncio.run(self.background_job())
-
-    def read_stdout(self, line):
-        try:
-            data = json.loads(line)
-            self.process_data(data)
-        except json.JSONDecodeError:
-            logger.error(f"ws90: Failed to parse rtl_433's json output: {line.strip()}")
-
-    def read_stderr(self, line):
-        line = line.strip()
-        if line != "":
-            logger.warning(f"rtl_433: {line}")
-
-    def process_data(self, data):
-        if data.get("model", None) != "Fineoffset-WS90":
-            return
-
-        if "id" not in data:
-            logger.error(f"ws90: No ID in received data: {data}")
-            return
-
+    def data_callback(self, data):
         device_id = data["id"]
-        if len(self.device_ids) > 0 and device_id not in self.device_ids:
-            logger.debug(f"ws90: Received message from ID {data['id']} (0x{data['id']:x}), expected one of {self.device_ids}. Ignoring.")
-            return
-
-        logger.debug(f"ws90: Received data {data}")
-
         self.model.labels(data["model"], data["id"], data["firmware"]).info({})
 
         self.temp.labels(device_id).set(data["temperature_C"])
@@ -211,6 +154,78 @@ class WS90Metrics(threading.Thread):
         self.model.remove(model, device_id, firmware)
 
 
+class WS90Reader(threading.Thread):
+    def __init__(self, cmd, device_ids, signal, future):
+        super().__init__()
+
+        self.cmd = self._parse_cmd(cmd)
+        self.device_ids = device_ids
+        self.signal = sig
+        self.future = future
+
+        if len(self.device_ids) == 0:
+            logger.info("ws90: Listening messages from all devices")
+        else:
+            logger.info(f"ws90: Listening messages from devices with ids: {self.device_ids}")
+
+    def _parse_cmd(self, cmd):
+        return cmd.split()
+
+    async def _read_stream(self, stream, callback):
+        while True:
+            line = await stream.readline()
+            if not line:
+                break
+            callback(line.decode("utf-8"))
+
+    async def background_job(self):
+        logger.debug(f"ws90: Will listen for data using {self.cmd}")
+        logger.info("ws90: Listening for data")
+        p = await asyncio.create_subprocess_exec(self.cmd[0], *self.cmd[1:], stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+        await asyncio.gather(
+            self._read_stream(p.stdout, self.read_stdout),
+            self._read_stream(p.stderr, self.read_stderr),
+        )
+
+        await p.wait()
+        logger.debug(f"ws90: rtl_433 exited with code {p.returncode}")
+
+    def run(self):
+        try:
+            asyncio.run(self.background_job())
+            self.future.set_result(True)
+        except Exception as e:
+            self.future.set_exception(e)
+
+    def read_stdout(self, line):
+        try:
+            data = json.loads(line)
+            self.process_data(data)
+        except json.JSONDecodeError:
+            logger.error(f"ws90: Failed to parse rtl_433's json output: {line.strip()}")
+
+    def read_stderr(self, line):
+        line = line.strip()
+        if line != "":
+            logger.warning(f"rtl_433: {line}")
+
+    def process_data(self, data):
+        if data.get("model", None) != "Fineoffset-WS90":
+            return
+
+        if "id" not in data:
+            logger.error(f"ws90: No ID in received data: {data}")
+            return
+
+        device_id = data["id"]
+        if len(self.device_ids) > 0 and device_id not in self.device_ids:
+            logger.debug(f"ws90: Received message from ID {data['id']} (0x{data['id']:x}), expected one of {self.device_ids}. Ignoring.")
+            return
+
+        logger.debug(f"ws90: Received data {data}")
+        self.signal.send(data)
+
+
 def as_number(value, allow_hex=False):
     try:
         return int(value)
@@ -225,14 +240,37 @@ def as_number(value, allow_hex=False):
     raise docopt.DocoptExit(f"Invalid number: {value}")
 
 
+class PrometheusServer(threading.Thread):
+    def __init__(self, port):
+        super().__init__()
+        self.port = port
+
+    def run(self):
+        logger.info("prometheus: Starting HTTP server on port %s", self.port)
+        prom.start_http_server(self.port, addr="::")
+
+
 if __name__ == "__main__":
     args = docopt.docopt(__doc__, version="WS90 Prometheus exporter")
 
     init_logging(args["--log"], args["--log-level"])
 
-    t = WS90Reader(cmd=args["--cmd"], device_ids=list(map(lambda x: as_number(x, allow_hex=True), args["--id"])), clear_interval=int(args["--clear"]))
-    t.start()
+    sig = blinker.signal("data-received")
 
-    port = as_number(args["--port"])
-    logger.info("prometheus: Starting HTTP server on port %s", port)
-    prom.start_http_server(port, addr="::")
+    p = PrometheusPublisher(int(args["--clear"]))
+    sig.connect(p.data_callback)
+
+    exc_watcher = concurrent.futures.Future()
+    thr_reader = WS90Reader(args["--cmd"], list(map(lambda x: as_number(x, allow_hex=True), args["--id"])), sig, exc_watcher)
+    thr_reader.start()
+
+    thr_prom_server = PrometheusServer(as_number(args["--port"]))
+    thr_prom_server.start()
+
+    try:
+        exc_watcher.result()
+    except Exception as e:
+        logger.exception(f"Exception in background reader thread: {e}")
+
+    thr_reader.join()
+    thr_prom_server.join()

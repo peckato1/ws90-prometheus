@@ -101,6 +101,7 @@ class PrometheusPublisher:
             "uvi": prom.Gauge("ws90_uvi", "UV index", ["id"]),
             "light_lux": prom.Gauge("ws90_light_lux", "Light in lux", ["id"]),
             "rain_mm": prom.Gauge("ws90_rain_m", "Total rain", ["id"]),
+            "rain_start": prom.Gauge("ws90_rain_start", "Rain start info", ["id"]),
         }
         self.postprocess = {
             "rain_mm": lambda x: x / 1000,  # mm to m

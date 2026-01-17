@@ -38,6 +38,7 @@ class Data:
     light_lux: float
     flags: int
     rain_mm: float
+    rain_start: int
     supercap_V: float
     firmware: str
     data: str
@@ -63,6 +64,7 @@ def random_data(device_ids):
         uvi=random.randint(1, 16),
         flags=random.randint(0, 0xff),
         rain_mm=round(random.uniform(0, 10000), 0),
+        rain_start=random.randint(0,1),
         supercap_V=round(random.randint(0, 0x3F) / 10, 1),
         firmware='126',
         data='3fff000000------0000fe8fde0000',

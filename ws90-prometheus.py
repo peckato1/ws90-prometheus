@@ -24,8 +24,8 @@ Options:
 """
 
 
+import asyncio
 import json
-import subprocess
 import prometheus_client as prom
 import threading
 import logging
@@ -113,30 +113,27 @@ class WS90Metrics(threading.Thread):
     def _parse_cmd(self, cmd):
         return cmd.split()
 
-    def run(self):
-        logger.debug(f'ws90: Will listen for data using {self.cmd}')
-        logger.info('ws90: Listening for data')
-        with subprocess.Popen(self.cmd,
-                              stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE,
-                              bufsize=1,
-                              universal_newlines=True) as p:
-            t1 = threading.Thread(
-                    target=self.read_stream,
-                    args=(p.stdout, self.read_stdout))
+    async def _read_stream(self, stream, callback):
+        while True:
+            line = await stream.readline()
+            if not line:
+                break
+            callback(line.decode('utf-8'))
 
-            t2 = threading.Thread(
-                    target=self.read_stream,
-                    args=(p.stderr, self.read_stderr))
+    async def background_job(self):
+        logger.debug(f"ws90: Will listen for data using {self.cmd}")
+        logger.info("ws90: Listening for data")
+        p = await asyncio.create_subprocess_exec(self.cmd[0], *self.cmd[1:], stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+        await asyncio.gather(
+            self._read_stream(p.stdout, self.read_stdout),
+            self._read_stream(p.stderr, self.read_stderr),
+        )
 
-            t1.start()
-            t2.start()
-
-            t1.join()
-            t2.join()
-
-        p.wait()
+        await p.wait()
         logger.debug(f'ws90: rtl_433 exited with code {p.returncode}')
+
+    def run(self):
+        asyncio.run(self.background_job())
 
     def read_stdout(self, line):
         try:
@@ -205,14 +202,6 @@ class WS90Metrics(threading.Thread):
         self.light.remove(device_id)
         self.rain_total.remove(device_id)
         self.model.remove(model, device_id, firmware)
-
-    def read_stream(self, stream, callback):
-        try:
-            with stream:
-                for line in stream:
-                    callback(line)
-        except ValueError:
-            pass
 
 
 def as_number(value, allow_hex=False):

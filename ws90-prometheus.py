@@ -89,35 +89,39 @@ class PrometheusPublisher:
         self.clear_interval = clear_interval
         self.timers = dict()
 
-        self.temp = prom.Gauge("ws90_temperature_celsius", "Temperature in Celsius", ["id"])
-        self.humidity = prom.Gauge("ws90_humidity_ratio", "Humidity in percent", ["id"])
-        self.battery_perc = prom.Gauge("ws90_battery_ratio", "Battery percent", ["id"])
-        self.battery_volt = prom.Gauge("ws90_battery_volts", "Battery voltage", ["id"])
-        self.supercapacitator_volt = prom.Gauge("ws90_supercap_volts", "Supercap voltage", ["id"])
-        self.wind_dir = prom.Gauge("ws90_wind_dir_degrees", "Wind direction in degrees", ["id"])
-        self.wind_avg = prom.Gauge("ws90_wind_avg_speed", "Wind speed in m/s", ["id"])
-        self.wind_gust = prom.Gauge("ws90_wind_gust_speed", "Wind gust speed in m/s", ["id"])
-        self.uvi = prom.Gauge("ws90_uvi", "UV index", ["id"])
-        self.light = prom.Gauge("ws90_light_lux", "Light in lux", ["id"])
-        self.rain_total = prom.Gauge("ws90_rain_m", "Total rain", ["id"])
+        self.metrics = {
+            "temperature_C": prom.Gauge("ws90_temperature_celsius", "Temperature in Celsius", ["id"]),
+            "humidity": prom.Gauge("ws90_humidity_ratio", "Humidity in percent", ["id"]),
+            "battery_ok": prom.Gauge("ws90_battery_ratio", "Battery percent", ["id"]),
+            "battery_mV": prom.Gauge("ws90_battery_volts", "Battery voltage", ["id"]),
+            "supercap_V": prom.Gauge("ws90_supercap_volts", "Supercap voltage", ["id"]),
+            "wind_dir_deg": prom.Gauge("ws90_wind_dir_degrees", "Wind direction in degrees", ["id"]),
+            "wind_avg_m_s": prom.Gauge("ws90_wind_avg_speed", "Wind speed in m/s", ["id"]),
+            "wind_max_m_s": prom.Gauge("ws90_wind_gust_speed", "Wind gust speed in m/s", ["id"]),
+            "uvi": prom.Gauge("ws90_uvi", "UV index", ["id"]),
+            "light_lux": prom.Gauge("ws90_light_lux", "Light in lux", ["id"]),
+            "rain_mm": prom.Gauge("ws90_rain_m", "Total rain", ["id"]),
+        }
+        self.postprocess = {
+            "rain_mm": lambda x: x / 1000,  # mm to m
+            "battery_mV": lambda x: x / 1000,  # mV to V
+        }
+
         self.model = prom.Info("ws90_model", "Model description", ["model", "id", "firmware"])
         self.last_sync = None
+
+    def _postprocess(self, data, key):
+        if key in self.postprocess:
+            return self.postprocess[key](data[key])
+        return data[key]
 
     def data_callback(self, data):
         device_id = data["id"]
         self.model.labels(data["model"], data["id"], data["firmware"]).info({})
 
-        self.temp.labels(device_id).set(data["temperature_C"])
-        self.humidity.labels(device_id).set(data["humidity"])
-        self.battery_perc.labels(device_id).set(data["battery_ok"])
-        self.battery_volt.labels(device_id).set(data["battery_mV"] / 1000)
-        self.supercapacitator_volt.labels(device_id).set(data["supercap_V"])
-        self.wind_dir.labels(device_id).set(data["wind_dir_deg"])
-        self.wind_avg.labels(device_id).set(data["wind_avg_m_s"])
-        self.wind_gust.labels(device_id).set(data["wind_max_m_s"])
-        self.uvi.labels(device_id).set(data["uvi"])
-        self.light.labels(device_id).set(data["light_lux"])
-        self.rain_total.labels(device_id).set(data["rain_mm"] / 1000)
+        for k, v in self.metrics.items():
+            v.labels(device_id).set(self._postprocess(data, k))
+
         self.set_timer(data["model"], device_id, data["firmware"])
 
     def set_timer(self, model, device_id, firmware):
@@ -140,17 +144,8 @@ class PrometheusPublisher:
     def clear_metrics(self, model, device_id, firmware):
         logger.debug(f"ws90: Clearing metrics for device {device_id}")
 
-        self.temp.remove(device_id)
-        self.humidity.remove(device_id)
-        self.battery_perc.remove(device_id)
-        self.battery_volt.remove(device_id)
-        self.supercapacitator_volt.remove(device_id)
-        self.wind_dir.remove(device_id)
-        self.wind_avg.remove(device_id)
-        self.wind_gust.remove(device_id)
-        self.uvi.remove(device_id)
-        self.light.remove(device_id)
-        self.rain_total.remove(device_id)
+        for _, m in self.metrics.items():
+            m.remove(device_id)
         self.model.remove(model, device_id, firmware)
 
 

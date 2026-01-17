@@ -1,0 +1,13 @@
+[project]
+name = "ws90-rtl433-victoriametrics"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "blinker>=1.9.0",
+    "docopt>=0.6.2",
+    "prometheus-client>=0.24.1",
+    "requests>=2.32.5",
+    "systemd-python>=235",
+]

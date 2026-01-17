@@ -25,12 +25,12 @@ Options:
 
 
 import asyncio
+import docopt
+import logging
 import json
 import prometheus_client as prom
-import threading
-import logging
-import docopt
 import sys
+import threading
 
 
 logger = logging.getLogger(__name__)

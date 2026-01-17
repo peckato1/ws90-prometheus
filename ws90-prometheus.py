@@ -23,7 +23,6 @@ Options:
     --help                  Show this screen
 """
 
-
 import asyncio
 import docopt
 import logging
@@ -55,31 +54,32 @@ class ResettableTimer:
 
 
 def init_logging(log_type, log_level):
-    if log_type == 'systemd':
+    if log_type == "systemd":
         try:
             import systemd.journal
+
             logger.addHandler(systemd.journal.JournalHandler())
         except ImportError:
-            raise ImportError('systemd logging requested, but systemd.journal module not found')
-    elif log_type == 'stderr':
+            raise ImportError("systemd logging requested, but systemd.journal module not found")
+    elif log_type == "stderr":
         handler = logging.StreamHandler(sys.stderr)
-        formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)8s - %(message)s')
+        formatter = logging.Formatter(fmt="%(asctime)s - %(levelname)8s - %(message)s")
         handler.setFormatter(formatter)
         logger.addHandler(handler)
     else:
-        raise docopt.DocoptExit(f'Invalid log type: {log_type}')
+        raise docopt.DocoptExit(f"Invalid log type: {log_type}")
 
     match log_level.lower():
-        case 'debug':
+        case "debug":
             logger.setLevel(logging.DEBUG)
-        case 'info':
+        case "info":
             logger.setLevel(logging.INFO)
-        case 'warning':
+        case "warning":
             logger.setLevel(logging.WARNING)
-        case 'error':
+        case "error":
             logger.setLevel(logging.ERROR)
         case _:
-            raise docopt.DocoptExit(f'Invalid log level: {log_level}')
+            raise docopt.DocoptExit(f"Invalid log level: {log_level}")
 
 
 class WS90Metrics(threading.Thread):
@@ -92,22 +92,22 @@ class WS90Metrics(threading.Thread):
         self.timers = dict()
 
         if len(self.device_ids) == 0:
-            logger.info('ws90: Listening messages from all devices')
+            logger.info("ws90: Listening messages from all devices")
         else:
-            logger.info(f'ws90: Listening messages from devices with ids: {self.device_ids}')
+            logger.info(f"ws90: Listening messages from devices with ids: {self.device_ids}")
 
-        self.temp = prom.Gauge('ws90_temperature_celsius', 'Temperature in Celsius', ['id'])
-        self.humidity = prom.Gauge('ws90_humidity_ratio', 'Humidity in percent', ['id'])
-        self.battery_perc = prom.Gauge('ws90_battery_ratio', 'Battery percent', ['id'])
-        self.battery_volt = prom.Gauge('ws90_battery_volts', 'Battery voltage', ['id'])
-        self.supercapacitator_volt = prom.Gauge('ws90_supercap_volts', 'Supercap voltage', ['id'])
-        self.wind_dir = prom.Gauge('ws90_wind_dir_degrees', 'Wind direction in degrees', ['id'])
-        self.wind_avg = prom.Gauge('ws90_wind_avg_speed', 'Wind speed in m/s', ['id'])
-        self.wind_gust = prom.Gauge('ws90_wind_gust_speed', 'Wind gust speed in m/s', ['id'])
-        self.uvi = prom.Gauge('ws90_uvi', 'UV index', ['id'])
-        self.light = prom.Gauge('ws90_light_lux', 'Light in lux', ['id'])
-        self.rain_total = prom.Gauge('ws90_rain_m', 'Total rain', ['id'])
-        self.model = prom.Info('ws90_model', 'Model description', ['model', 'id', 'firmware'])
+        self.temp = prom.Gauge("ws90_temperature_celsius", "Temperature in Celsius", ["id"])
+        self.humidity = prom.Gauge("ws90_humidity_ratio", "Humidity in percent", ["id"])
+        self.battery_perc = prom.Gauge("ws90_battery_ratio", "Battery percent", ["id"])
+        self.battery_volt = prom.Gauge("ws90_battery_volts", "Battery voltage", ["id"])
+        self.supercapacitator_volt = prom.Gauge("ws90_supercap_volts", "Supercap voltage", ["id"])
+        self.wind_dir = prom.Gauge("ws90_wind_dir_degrees", "Wind direction in degrees", ["id"])
+        self.wind_avg = prom.Gauge("ws90_wind_avg_speed", "Wind speed in m/s", ["id"])
+        self.wind_gust = prom.Gauge("ws90_wind_gust_speed", "Wind gust speed in m/s", ["id"])
+        self.uvi = prom.Gauge("ws90_uvi", "UV index", ["id"])
+        self.light = prom.Gauge("ws90_light_lux", "Light in lux", ["id"])
+        self.rain_total = prom.Gauge("ws90_rain_m", "Total rain", ["id"])
+        self.model = prom.Info("ws90_model", "Model description", ["model", "id", "firmware"])
         self.last_sync = None
 
     def _parse_cmd(self, cmd):
@@ -118,7 +118,7 @@ class WS90Metrics(threading.Thread):
             line = await stream.readline()
             if not line:
                 break
-            callback(line.decode('utf-8'))
+            callback(line.decode("utf-8"))
 
     async def background_job(self):
         logger.debug(f"ws90: Will listen for data using {self.cmd}")
@@ -130,7 +130,7 @@ class WS90Metrics(threading.Thread):
         )
 
         await p.wait()
-        logger.debug(f'ws90: rtl_433 exited with code {p.returncode}')
+        logger.debug(f"ws90: rtl_433 exited with code {p.returncode}")
 
     def run(self):
         asyncio.run(self.background_job())
@@ -144,51 +144,58 @@ class WS90Metrics(threading.Thread):
 
     def read_stderr(self, line):
         line = line.strip()
-        if line != '':
-            logger.warning(f'rtl_433: {line}')
+        if line != "":
+            logger.warning(f"rtl_433: {line}")
 
     def process_data(self, data):
-        if data.get('model', None) != 'Fineoffset-WS90':
+        if data.get("model", None) != "Fineoffset-WS90":
             return
 
-        if 'id' not in data:
-            logger.error(f'ws90: No ID in received data: {data}')
+        if "id" not in data:
+            logger.error(f"ws90: No ID in received data: {data}")
             return
 
-        device_id = data['id']
+        device_id = data["id"]
         if len(self.device_ids) > 0 and device_id not in self.device_ids:
-            logger.debug(f'ws90: Received message from ID {data["id"]} (0x{data["id"]:x}), expected one of {self.device_ids}. Ignoring.')
+            logger.debug(f"ws90: Received message from ID {data['id']} (0x{data['id']:x}), expected one of {self.device_ids}. Ignoring.")
             return
 
-        logger.debug(f'ws90: Received data {data}')
+        logger.debug(f"ws90: Received data {data}")
 
-        self.model.labels(data['model'], data['id'], data['firmware']).info({})
+        self.model.labels(data["model"], data["id"], data["firmware"]).info({})
 
-        self.temp.labels(device_id).set(data['temperature_C'])
-        self.humidity.labels(device_id).set(data['humidity'])
-        self.battery_perc.labels(device_id).set(data['battery_ok'])
-        self.battery_volt.labels(device_id).set(data['battery_mV'] / 1000)
-        self.supercapacitator_volt.labels(device_id).set(data['supercap_V'])
-        self.wind_dir.labels(device_id).set(data['wind_dir_deg'])
-        self.wind_avg.labels(device_id).set(data['wind_avg_m_s'])
-        self.wind_gust.labels(device_id).set(data['wind_max_m_s'])
-        self.uvi.labels(device_id).set(data['uvi'])
-        self.light.labels(device_id).set(data['light_lux'])
-        self.rain_total.labels(device_id).set(data['rain_mm'] / 1000)
-        self.set_timer(data['model'], device_id, data['firmware'])
+        self.temp.labels(device_id).set(data["temperature_C"])
+        self.humidity.labels(device_id).set(data["humidity"])
+        self.battery_perc.labels(device_id).set(data["battery_ok"])
+        self.battery_volt.labels(device_id).set(data["battery_mV"] / 1000)
+        self.supercapacitator_volt.labels(device_id).set(data["supercap_V"])
+        self.wind_dir.labels(device_id).set(data["wind_dir_deg"])
+        self.wind_avg.labels(device_id).set(data["wind_avg_m_s"])
+        self.wind_gust.labels(device_id).set(data["wind_max_m_s"])
+        self.uvi.labels(device_id).set(data["uvi"])
+        self.light.labels(device_id).set(data["light_lux"])
+        self.rain_total.labels(device_id).set(data["rain_mm"] / 1000)
+        self.set_timer(data["model"], device_id, data["firmware"])
 
     def set_timer(self, model, device_id, firmware):
         if self.clear_interval == 0:
             return
 
         if device_id not in self.timers:
-            self.timers[device_id] = ResettableTimer(self.clear_interval, self.clear_metrics,
-                                                     args=(model, device_id, firmware, ))
+            self.timers[device_id] = ResettableTimer(
+                self.clear_interval,
+                self.clear_metrics,
+                args=(
+                    model,
+                    device_id,
+                    firmware,
+                ),
+            )
 
         self.timers[device_id].start()
 
     def clear_metrics(self, model, device_id, firmware):
-        logger.debug(f'ws90: Clearing metrics for device {device_id}')
+        logger.debug(f"ws90: Clearing metrics for device {device_id}")
 
         self.temp.remove(device_id)
         self.humidity.remove(device_id)
@@ -211,24 +218,21 @@ def as_number(value, allow_hex=False):
         pass
 
     try:
-        if allow_hex and value.startswith('0x'):
+        if allow_hex and value.startswith("0x"):
             return int(value, 16)
     except ValueError:
         pass
-    raise docopt.DocoptExit(f'Invalid number: {value}')
+    raise docopt.DocoptExit(f"Invalid number: {value}")
 
 
-if __name__ == '__main__':
-    args = docopt.docopt(__doc__, version='WS90 Prometheus exporter')
+if __name__ == "__main__":
+    args = docopt.docopt(__doc__, version="WS90 Prometheus exporter")
 
-    init_logging(args['--log'], args['--log-level'])
+    init_logging(args["--log"], args["--log-level"])
 
-    t = WS90Metrics(
-            cmd=args['--cmd'],
-            device_ids=list(map(lambda x: as_number(x, allow_hex=True), args['--id'])),
-            clear_interval=int(args['--clear']))
+    t = WS90Reader(cmd=args["--cmd"], device_ids=list(map(lambda x: as_number(x, allow_hex=True), args["--id"])), clear_interval=int(args["--clear"]))
     t.start()
 
-    port = as_number(args['--port'])
-    logger.info('prometheus: Starting HTTP server on port %s', port)
+    port = as_number(args["--port"])
+    logger.info("prometheus: Starting HTTP server on port %s", port)
     prom.start_http_server(port, addr="::")

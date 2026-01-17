@@ -132,11 +132,7 @@ class PrometheusPublisher:
             self.timers[device_id] = ResettableTimer(
                 self.clear_interval,
                 self.clear_metrics,
-                args=(
-                    model,
-                    device_id,
-                    firmware,
-                ),
+                args=(model, device_id, firmware),
             )
 
         self.timers[device_id].start()

@@ -29,7 +29,6 @@ import subprocess
 import prometheus_client as prom
 import threading
 import logging
-import systemd.journal
 import docopt
 import sys
 
@@ -57,7 +56,11 @@ class ResettableTimer:
 
 def init_logging(log_type, log_level):
     if log_type == 'systemd':
-        logger.addHandler(systemd.journal.JournalHandler())
+        try:
+            import systemd.journal
+            logger.addHandler(systemd.journal.JournalHandler())
+        except ImportError:
+            raise ImportError('systemd logging requested, but systemd.journal module not found')
     elif log_type == 'stderr':
         handler = logging.StreamHandler(sys.stderr)
         formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)8s - %(message)s')

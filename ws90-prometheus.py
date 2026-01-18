@@ -27,11 +27,18 @@ Options:
 
 import docopt
 import logging
+import os
 import sys
-from ws90_prometheus.daemon import WS90PromDaemon
 
 
 logger = logging.getLogger(__name__)
+
+path = os.environ.get("WS90_PROM_PYTHON_PATH", "/usr/lib/")
+if path not in sys.path:
+    sys.path.insert(0, path)
+
+
+from ws90_prometheus.daemon import WS90PromDaemon  # noqa
 
 
 def as_number(value, allow_hex=False):

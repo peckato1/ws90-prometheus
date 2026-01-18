@@ -1,6 +1,8 @@
 import asyncio
 import json
 import logging
+import os
+import signal
 import threading
 
 logger = logging.getLogger(__name__)
@@ -23,6 +25,11 @@ class WS90Reader(threading.Thread):
     def _parse_cmd(self, cmd):
         return cmd.split()
 
+    def terminate_subprocess(self):
+        if self.p.returncode is None:
+            logger.debug("ws90: Terminating rtl_433 subprocess")
+            os.killpg(os.getpgid(self.p.pid), signal.SIGTERM)
+
     async def _read_stream(self, stream, callback):
         while True:
             line = await stream.readline()
@@ -33,19 +40,19 @@ class WS90Reader(threading.Thread):
     async def background_job(self):
         logger.debug(f"ws90: Will listen for data using {self.cmd}")
         logger.info("ws90: Listening for data")
-        p = await asyncio.create_subprocess_exec(self.cmd[0], *self.cmd[1:], stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+        self.p = await asyncio.create_subprocess_exec(self.cmd[0], *self.cmd[1:], stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
         await asyncio.gather(
-            self._read_stream(p.stdout, self.read_stdout),
-            self._read_stream(p.stderr, self.read_stderr),
+            self._read_stream(self.p.stdout, self.read_stdout),
+            self._read_stream(self.p.stderr, self.read_stderr),
         )
 
-        await p.wait()
-        logger.debug(f"ws90: rtl_433 exited with code {p.returncode}")
+        rc = await self.p.wait()
+        self.future.set_result(rc)
+        logger.debug(f"ws90: rtl_433 exited with code {self.p.returncode}")
 
     def run(self):
         try:
             asyncio.run(self.background_job())
-            self.future.set_result(True)
         except Exception as e:
             self.future.set_exception(e)
 

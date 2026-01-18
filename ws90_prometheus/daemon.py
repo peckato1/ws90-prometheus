@@ -1,6 +1,7 @@
 import blinker
 import concurrent.futures
 import logging
+import signal
 
 from .publish_prom import PrometheusPublisher, PrometheusServer
 from .publish_vm import VictoriaMetricsPublisher
@@ -51,6 +52,8 @@ class WS90PromDaemon:
         self.thr_prom_server = PrometheusServer(prom_port)
 
     def run(self):
+        signal.signal(signal.SIGINT, lambda sig, frame: self.thr_reader.terminate_subprocess())
+
         self.thr_reader.start()
         self.thr_prom_server.start()
 

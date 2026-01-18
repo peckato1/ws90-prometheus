@@ -32,7 +32,6 @@ class VictoriaMetricsPublisher:
             value = data[json_key] if postprocess is None else postprocess(data[json_key])
             columns.append(f"{i}:metric:{name}")
             csv_line.append(value)
-            break
 
         return csv_line, columns
 

@@ -36,7 +36,7 @@ class PrometheusPublisher:
     def data_callback(self, data):
         device_id = data["id"]
         for k, model_info in self.model_info.items():
-            model_info.labels(device_id).info({k: data[k] for k in self.model_keys[k]})
+            model_info.labels(device_id).info({k: str(data[k]) for k in self.model_keys[k]})
 
         for k, v in self.metrics.items():
             v.labels(device_id).set(self._postprocess(data, k))

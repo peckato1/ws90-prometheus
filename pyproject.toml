@@ -1,13 +1,12 @@
 [project]
 name = "rtl433-meteo"
-version = "0.2.0"
-description = "Export rtl_433 weather-station metrics (Fineoffset-WS90, Vevor-7in1) to Prometheus and VictoriaMetrics"
+version = "0.3.0"
+description = "Push rtl_433 weather-station metrics (Fineoffset-WS90, Vevor-7in1) to VictoriaMetrics"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
     "blinker>=1.9.0",
     "docopt>=0.6.2",
-    "prometheus-client>=0.24.1",
     "requests>=2.32.5",
     "systemd-python>=235",
 ]

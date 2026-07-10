@@ -1,22 +1,19 @@
-"""rtl433-meteo -- export rtl_433 weather-station metrics to Prometheus/VictoriaMetrics.
+"""rtl433-meteo -- push rtl_433 weather-station metrics to VictoriaMetrics.
 
 Usage:
-    rtl433-meteo
+    rtl433-meteo <vmbaseurl>
         [--id=<id>]...
-        [--port=<port>]
-        [--vmbaseurl=<url>]
-        [--clear=<clear>]
         [--log=<systemd|stderr>]
         [--log-level=<level>]
         [--cmd=<cmd>]
     rtl433-meteo --help
 
+Arguments:
+    <vmbaseurl>             VictoriaMetrics base URL to push metrics to (e.g. http://localhost:8428).
+
 Options:
     --id=<id>               Device ID. Can be decimal or hex (prefix with 0x). Can specify multiple times. If not specified, all devices are being monitored.
-    --port=<port>           Port to listen on [default: 8000]
-    --vmbaseurl=<url>       VictoriaMetrics base URL. If not specified, VictoriaMetrics publishing is disabled.
     --log-level=<level>     Log level (debug, info, warning, error) [default: info]
-    --clear=<clear>         Remove metrics for device after <clear> seconds. 0 for never. Useful for purging outdated metrics when the receiver stops receiving new data for a device. [default: 120]
     --log=<systemd|stderr>  Log to systemd journal or stderr [default: stderr]
     --cmd=<cmd>             Command to run [default: rtl_433 -Y minmax -f 868.3M -F json]
     --help                  Show this screen
@@ -87,9 +84,7 @@ def main():
     daemon = MeteoExporterDaemon(
         args["--cmd"],
         device_ids,
-        int(args["--clear"]),
-        int(args["--port"]),
-        args["--vmbaseurl"],
+        args["<vmbaseurl>"],
     )
     daemon.run()
 

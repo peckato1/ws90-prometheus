@@ -69,15 +69,9 @@ METRICS: dict[str, Metric] = {
     "rain_start": Metric("meteo_rain_start", "Rain start info"),
 }
 
-# Info metric carrying per-model textual details. The label set is the fixed union
-# of every station's ``info_keys`` (missing keys are exported as ""), because
-# prometheus_client requires a consistent set of info labels across all series.
+# Info metric carrying per-model textual details (firmware, channel, ...). Each
+# station contributes only the ``info_keys`` it actually reports.
 INFO_METRIC_NAME = "meteo"
-INFO_METRIC_DESC = "Weather station model information"
-INFO_KEYS: tuple[str, ...] = ("firmware", "channel")
-
-
-LABELS = ("model", "id")
 
 
 STATIONS: dict[str, Station] = {

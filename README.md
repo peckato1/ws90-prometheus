@@ -1,8 +1,8 @@
 # rtl433-meteo
 
 Reads data from RF weather stations using [rtl_433](https://github.com/merbanan/rtl_433)
-(RTL-SDR) and exposes it for Prometheus scraping, optionally also pushing it to
-VictoriaMetrics.
+(RTL-SDR) and pushes it to [VictoriaMetrics](https://victoriametrics.com/) via its
+CSV import API.
 
 ## Supported stations
 
@@ -25,28 +25,28 @@ metric.
 1. Add a `Station(...)` entry to `STATIONS` in `rtl433_meteo/stations.py`, mapping the
    station's rtl_433 JSON keys to the shared metrics (add a `transform` for any unit
    conversion, and a new `Metric` to `METRICS` only if the quantity is genuinely new).
-2. List any model-specific text keys (like `firmware`/`channel`) in `info_keys`, and
-   add them to `INFO_KEYS` if not already present.
+2. List any model-specific text keys (like `firmware`/`channel`) in `info_keys`.
 
-No changes to the reader or publishers are needed.
+No changes to the reader or publisher are needed.
 
 ## Usage
 
 ```console
-$ rtl433-meteo --help
+$ rtl433-meteo <vmbaseurl> [--id=<id>]... [--cmd=<cmd>] [--log-level=<level>]
 ```
 
-By default it runs `rtl_433 -Y minmax -f 868.3M -F json` and serves metrics on
-`:8000`. Pass `--vmbaseurl=<url>` to also push to VictoriaMetrics, and `--id` (repeatable,
-decimal or `0x`-hex) to restrict to specific device IDs.
+The VictoriaMetrics base URL is required — every reading is pushed to its
+`/api/v1/import/csv` endpoint. By default the tool runs
+`rtl_433 -Y minmax -f 868.3M -F json`; use `--id` (repeatable, decimal or `0x`-hex)
+to restrict to specific device IDs. See `rtl433-meteo --help` for all options.
 
 ## Development
 
-Run against the fake data generator without any radio hardware:
+Run against the fake data generator without any radio hardware (point it at a local
+VictoriaMetrics, or any HTTP endpoint that accepts the CSV import POST):
 
 ```console
-$ rtl433-meteo --cmd "python fake/fake.py --model Vevor-7in1" --log-level debug
-$ curl -s localhost:8000/metrics | grep meteo_
+$ rtl433-meteo http://localhost:8428 --cmd "python fake/fake.py --model Vevor-7in1" --log-level debug
 ```
 
 `fake/fake.py --model {Fineoffset-WS90,Vevor-7in1}` emits synthetic rtl_433 JSON lines.

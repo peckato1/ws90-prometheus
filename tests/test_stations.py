@@ -16,12 +16,6 @@ def test_every_field_maps_to_a_known_metric():
             assert field.metric_key in stations.METRICS
 
 
-def test_every_station_info_key_is_in_the_shared_union():
-    for station in stations.STATIONS.values():
-        for key in station.info_keys:
-            assert key in stations.INFO_KEYS
-
-
 def test_ws90_units(ws90):
     m = _mapped(ws90)
     assert m["temperature_celsius"] == 21.5

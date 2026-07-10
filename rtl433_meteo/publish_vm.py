@@ -51,5 +51,10 @@ class VictoriaMetricsPublisher:
         dt = datetime.datetime.strptime(data["time"], "%Y-%m-%d %H:%M:%S")
         extra_label = f"id={data['id']},model={data['model']}"
 
-        self._post(extra_label, *self._construct_metrics(data, station, dt))
-        self._post(extra_label, *self._construct_info(data, station, dt))
+        # A VictoriaMetrics outage must not tear down the reader: log and drop the
+        # sample, the next message will be pushed once VM recovers.
+        try:
+            self._post(extra_label, *self._construct_metrics(data, station, dt))
+            self._post(extra_label, *self._construct_info(data, station, dt))
+        except requests.RequestException as e:
+            logger.error(f"rtl433: Failed to push to VictoriaMetrics ({extra_label}): {e}")

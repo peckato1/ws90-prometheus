@@ -1,5 +1,5 @@
 [Unit]
-Description=Exporting rtl_433 weather-station metrics to Prometheus/VictoriaMetrics
+Description=Pushing rtl_433 weather-station metrics to VictoriaMetrics
 After=network-online.target
 Wants=network-online.target
 Documentation=https://github.com/peckato1/ws90-prometheus
@@ -7,7 +7,7 @@ Documentation=https://github.com/peckato1/ws90-prometheus
 [Service]
 Type=simple
 PIDFile=/run/rtl433-meteo.pid
-ExecStart=/usr/bin/rtl433-meteo --log=systemd --log-level=debug --clear 120
+ExecStart=/usr/bin/rtl433-meteo http://localhost:8428 --log=systemd --log-level=debug
 Restart=always
 
 [Install]

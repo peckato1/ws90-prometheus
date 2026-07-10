@@ -2,6 +2,10 @@
 # Install as /etc/conf.d/rtl433-meteo.
 # shellcheck disable=SC2034  # sourced by OpenRC; consumed by the init script
 
+# Path to the rtl433-meteo executable. Override this if you installed into a
+# virtualenv rather than system-wide (see the README "Installation" section).
+#command="/opt/rtl433-meteo/bin/rtl433-meteo"
+
 # VictoriaMetrics base URL that every reading is pushed to.
 vmbaseurl="http://localhost:8428"
 

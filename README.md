@@ -57,10 +57,43 @@ Run the tests with:
 $ uv run pytest
 ```
 
+## Installation
+
+`rtl433-meteo` is a standard Python package. How you install it decides where the
+`rtl433-meteo` executable ends up — and that path is what the service units call, so
+the two must agree. Find the installed path any time with `command -v rtl433-meteo`.
+
+### Isolated virtualenv (recommended)
+
+Keeps the dependencies off the system Python and sidesteps the "externally managed
+environment" (PEP 668) error on Arch/Alpine/Debian:
+
+```console
+# python -m venv /opt/rtl433-meteo
+# /opt/rtl433-meteo/bin/pip install .
+```
+
+The executable is then `/opt/rtl433-meteo/bin/rtl433-meteo`. Point the service at it
+(systemd: edit `ExecStart`; OpenRC: set `command=` in `/etc/conf.d/rtl433-meteo`),
+or symlink it so the default `/usr/bin` path works:
+
+```console
+# ln -s /opt/rtl433-meteo/bin/rtl433-meteo /usr/bin/rtl433-meteo
+```
+
+### System-wide
+
+```console
+# pip install .        # add --break-system-packages on PEP 668 distros
+```
+
+Scripts land in the system bin — `/usr/bin` or `/usr/local/bin` depending on the
+distro; check with `command -v rtl433-meteo`.
+
 ## Deployment
 
-Installing the package (e.g. `pip install .`) provides the `rtl433-meteo` console
-script. Service units are provided for both init systems:
+The service units below call `/usr/bin/rtl433-meteo` by default — adjust the path
+to match your install (see above).
 
 **systemd** — [`rtl433-meteo.service`](rtl433-meteo.service):
 

@@ -11,7 +11,7 @@
 
 description="Push rtl_433 weather-station metrics to VictoriaMetrics"
 
-command="/usr/bin/rtl433-meteo"
+: "${command:=/usr/bin/rtl433-meteo}"
 command_args="${vmbaseurl} ${rtl433_meteo_opts}"
 command_background="yes"
 pidfile="/run/${RC_SVCNAME}.pid"

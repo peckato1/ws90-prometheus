@@ -1,10 +1,7 @@
-#!/usr/bin/env python
-
-"""
-WS90 Prometheus exporter
+"""rtl433-meteo -- export rtl_433 weather-station metrics to Prometheus/VictoriaMetrics.
 
 Usage:
-    ws90-prometheus.py
+    rtl433-meteo
         [--id=<id>]...
         [--port=<port>]
         [--vmbaseurl=<url>]
@@ -12,7 +9,7 @@ Usage:
         [--log=<systemd|stderr>]
         [--log-level=<level>]
         [--cmd=<cmd>]
-    ws90-prometheus.py --help
+    rtl433-meteo --help
 
 Options:
     --id=<id>               Device ID. Can be decimal or hex (prefix with 0x). Can specify multiple times. If not specified, all devices are being monitored.
@@ -27,18 +24,11 @@ Options:
 
 import docopt
 import logging
-import os
 import sys
 
+from .daemon import MeteoExporterDaemon
 
 logger = logging.getLogger(__name__)
-
-path = os.environ.get("WS90_PROM_PYTHON_PATH", "/usr/lib/")
-if path not in sys.path:
-    sys.path.insert(0, path)
-
-
-from ws90_prometheus.daemon import WS90PromDaemon  # noqa
 
 
 def as_number(value, allow_hex=False):
@@ -88,11 +78,21 @@ def init_logging(log_type, log_level):
     root_logger.setLevel(log_level)
 
 
-if __name__ == "__main__":
-    args = docopt.docopt(__doc__, version="WS90 Prometheus exporter")
+def main():
+    args = docopt.docopt(__doc__, version="rtl433-meteo exporter")
 
     init_logging(args["--log"], args["--log-level"])
 
-    device_ids = list(map(lambda x: as_number(x, allow_hex=True), args["--id"]))
-    daemon = WS90PromDaemon(args["--cmd"], device_ids, int(args["--clear"]), int(args["--port"]), args["--vmbaseurl"])
+    device_ids = [as_number(x, allow_hex=True) for x in args["--id"]]
+    daemon = MeteoExporterDaemon(
+        args["--cmd"],
+        device_ids,
+        int(args["--clear"]),
+        int(args["--port"]),
+        args["--vmbaseurl"],
+    )
     daemon.run()
+
+
+if __name__ == "__main__":
+    main()

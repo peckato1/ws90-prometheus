@@ -1,7 +1,7 @@
 [project]
-name = "ws90-rtl433-victoriametrics"
-version = "0.1.0"
-description = "Add your description here"
+name = "rtl433-meteo"
+version = "0.2.0"
+description = "Export rtl_433 weather-station metrics (Fineoffset-WS90, Vevor-7in1) to Prometheus and VictoriaMetrics"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
@@ -10,4 +10,22 @@ dependencies = [
     "prometheus-client>=0.24.1",
     "requests>=2.32.5",
     "systemd-python>=235",
+]
+
+[project.scripts]
+rtl433-meteo = "rtl433_meteo.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["rtl433_meteo"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
 ]

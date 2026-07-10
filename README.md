@@ -121,3 +121,23 @@ to match your install (see above).
 
 The OpenRC service stops with SIGINT so the `rtl_433` child is shut down cleanly.
 Both units default to `http://localhost:8428`; change it for a remote VictoriaMetrics.
+
+## Grafana dashboard
+
+[`grafana/rtl433-meteo.json`](grafana/rtl433-meteo.json) is a ready-to-import
+dashboard covering both stations: current conditions, wind (speed/gust + a
+compass-style direction and cardinal heading), temperature, humidity, light, UV,
+hourly rainfall, and a power/health row (battery, voltages, device inventory).
+
+It queries VictoriaMetrics through its Prometheus-compatible API. Import it via
+**Dashboards → New → Import → Upload JSON**, then pick your VictoriaMetrics
+(Prometheus-type) data source when prompted. Two template variables — **Model** and
+**Device ID** — let you focus on one station or compare both side by side.
+
+The combined **Sky** panel overlays light (lux, left axis), sun and moon elevation
+(degrees, right axis) and the UV index in a single graph; rainfall has its own row.
+Sun/moon elevation comes from the
+[sun-and-moon datasource](https://github.com/fetzerch/grafana-sunandmoon-datasource)
+plugin (`fetzerch-sunandmoon-datasource`), configured for your location — select it in
+the **Sun & Moon source** variable on import. If you don't have the plugin, everything
+else still works; only the two elevation series stay empty.

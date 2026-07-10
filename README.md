@@ -59,5 +59,25 @@ $ uv run pytest
 
 ## Deployment
 
-A systemd unit is provided in [`rtl433-meteo.service`](rtl433-meteo.service). Installing
-the package (e.g. `pip install .`) provides the `rtl433-meteo` console script.
+Installing the package (e.g. `pip install .`) provides the `rtl433-meteo` console
+script. Service units are provided for both init systems:
+
+**systemd** — [`rtl433-meteo.service`](rtl433-meteo.service):
+
+```console
+# cp rtl433-meteo.service /etc/systemd/system/
+# systemctl enable --now rtl433-meteo
+```
+
+**OpenRC** — [`rtl433-meteo.initd`](rtl433-meteo.initd) + [`rtl433-meteo.confd`](rtl433-meteo.confd):
+
+```console
+# install -m0755 rtl433-meteo.initd /etc/init.d/rtl433-meteo
+# install -m0644 rtl433-meteo.confd /etc/conf.d/rtl433-meteo
+# $EDITOR /etc/conf.d/rtl433-meteo      # set vmbaseurl, options, optional user
+# rc-update add rtl433-meteo default
+# rc-service rtl433-meteo start
+```
+
+The OpenRC service stops with SIGINT so the `rtl_433` child is shut down cleanly.
+Both units default to `http://localhost:8428`; change it for a remote VictoriaMetrics.

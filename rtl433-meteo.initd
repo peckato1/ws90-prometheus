@@ -1,0 +1,42 @@
+#!/sbin/openrc-run
+# OpenRC service for rtl433-meteo.
+# Install as /etc/init.d/rtl433-meteo (chmod +x) with its companion
+# /etc/conf.d/rtl433-meteo. Then: rc-update add rtl433-meteo default
+
+# These are consumed by the openrc-run framework, not referenced in this script.
+# shellcheck disable=SC2034
+
+: "${vmbaseurl:=http://localhost:8428}"
+: "${rtl433_meteo_opts:=--log-level info}"
+
+description="Push rtl_433 weather-station metrics to VictoriaMetrics"
+
+command="/usr/bin/rtl433-meteo"
+command_args="${vmbaseurl} ${rtl433_meteo_opts}"
+command_background="yes"
+pidfile="/run/${RC_SVCNAME}.pid"
+
+# rtl433-meteo traps SIGINT to shut its rtl_433 subprocess down cleanly; it has no
+# SIGTERM handler. Stop with SIGINT first (falling back to SIGTERM) so the radio
+# child is terminated gracefully and never left orphaned.
+retry="SIGINT/5/SIGTERM/5"
+
+# With command_background, OpenRC redirects the daemon's stdout/stderr here.
+output_log="/var/log/${RC_SVCNAME}.log"
+error_log="/var/log/${RC_SVCNAME}.log"
+
+depend() {
+	need net
+	after firewall
+}
+
+start_pre() {
+	# rtl433-meteo needs access to the RTL-SDR USB device. When command_user is set
+	# in conf.d, that user must be able to reach it (udev rule / 'usb' group) and own
+	# the log file; otherwise the service runs as root.
+	if [ -n "${command_user}" ]; then
+		checkpath --file --mode 0644 --owner "${command_user}" "${output_log}"
+	else
+		checkpath --file --mode 0644 "${output_log}"
+	fi
+}

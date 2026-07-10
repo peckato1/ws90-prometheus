@@ -1,0 +1,16 @@
+# Configuration for the rtl433-meteo OpenRC service.
+# Install as /etc/conf.d/rtl433-meteo.
+# shellcheck disable=SC2034  # sourced by OpenRC; consumed by the init script
+
+# VictoriaMetrics base URL that every reading is pushed to.
+vmbaseurl="http://localhost:8428"
+
+# Extra options passed to rtl433-meteo (see: rtl433-meteo --help). Examples:
+#   restrict to your own device IDs:  --id 63735 --id 15132
+#   override the rtl_433 command:     --cmd "rtl_433 -f 868.3M -F json"
+rtl433_meteo_opts="--log-level info"
+
+# User to run the daemon as. It must be able to access the RTL-SDR USB device
+# (typically a member of the 'usb'/'plugdev' group with a matching udev rule).
+# Leave commented to run as root, which is the simplest for USB access.
+#command_user="rtl433"

@@ -29,7 +29,7 @@ class VictoriaMetricsPublisher:
             timeout=self.timeout,
         )
         resp.raise_for_status()
-        logger.debug(f"rtl433: Posted data to VictoriaMetrics ({labels}): {data} (response: {resp.status_code})")
+        logger.debug(f"vm: Posted data to VictoriaMetrics ({labels}): {data} (response: {resp.status_code})")
 
     def _construct_metrics(self, data, station, dt):
         columns = ["1:time:unix_s"]
@@ -62,5 +62,6 @@ class VictoriaMetricsPublisher:
         try:
             self._post(extra_label, *self._construct_metrics(data, station, dt))
             self._post(extra_label, *self._construct_info(data, station, dt))
+            logger.info("vm: Pushed %s id=%s (%d metrics)", data["model"], data["id"], len(station.fields))
         except requests.RequestException as e:
-            logger.error(f"rtl433: Failed to push to VictoriaMetrics ({extra_label}): {e}")
+            logger.error(f"vm: Failed to push to VictoriaMetrics ({extra_label}): {e}")

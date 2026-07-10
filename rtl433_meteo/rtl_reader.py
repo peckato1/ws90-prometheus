@@ -85,5 +85,6 @@ class RtlReader(threading.Thread):
             logger.debug(f"rtl433: Received message from ID {device_id} (0x{device_id:x}), expected one of {self.device_ids}. Ignoring.")
             return
 
+        logger.info("rtl433: Received %s id=%s (0x%x)", data["model"], device_id, device_id)
         logger.debug(f"rtl433: Received data {data}")
         self.signal.send(data)

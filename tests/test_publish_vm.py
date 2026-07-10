@@ -74,3 +74,17 @@ def test_vm_outage_is_swallowed(publisher, ws90, monkeypatch):
     monkeypatch.setattr("rtl433_meteo.publish_vm.requests.post", boom)
     # Must not raise -- a dead VM cannot be allowed to kill the reader thread.
     publisher.data_callback(ws90)
+
+
+def test_successful_push_logs_at_info(publisher, ws90, monkeypatch, caplog):
+    class Resp:
+        status_code = 204
+
+        def raise_for_status(self):
+            pass
+
+    monkeypatch.setattr("rtl433_meteo.publish_vm.requests.post", lambda *a, **k: Resp())
+    with caplog.at_level("INFO", logger="rtl433_meteo.publish_vm"):
+        publisher.data_callback(ws90)
+
+    assert any("Pushed Fineoffset-WS90 id=15132" in r.message for r in caplog.records)

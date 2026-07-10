@@ -90,6 +90,13 @@ or symlink it so the default `/usr/bin` path works:
 Scripts land in the system bin — `/usr/bin` or `/usr/local/bin` depending on the
 distro; check with `command -v rtl433-meteo`.
 
+### Logging to the systemd journal
+
+`--log=systemd` needs the optional `systemd` extra: `pip install .[systemd]`. It
+pulls in `systemd-python`, which requires libsystemd at build time, so only install
+it on systemd hosts. Plain installs and the OpenRC service (which logs to a file)
+don't need it.
+
 ## Deployment
 
 The service units below call `/usr/bin/rtl433-meteo` by default — adjust the path

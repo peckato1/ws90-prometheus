@@ -8,8 +8,12 @@ dependencies = [
     "blinker>=1.9.0",
     "docopt>=0.6.2",
     "requests>=2.32.5",
-    "systemd-python>=235",
 ]
+
+[project.optional-dependencies]
+# Enables `--log=systemd` (journald logging). Requires libsystemd at build time,
+# so it is opt-in and not pulled in on non-systemd hosts (e.g. Alpine/OpenRC).
+systemd = ["systemd-python>=235"]
 
 [project.scripts]
 rtl433-meteo = "rtl433_meteo.cli:main"

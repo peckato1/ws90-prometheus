@@ -144,6 +144,10 @@ dependencies = [
     { name = "blinker" },
     { name = "docopt" },
     { name = "requests" },
+]
+
+[package.optional-dependencies]
+systemd = [
     { name = "systemd-python" },
 ]
 
@@ -157,8 +161,9 @@ requires-dist = [
     { name = "blinker", specifier = ">=1.9.0" },
     { name = "docopt", specifier = ">=0.6.2" },
     { name = "requests", specifier = ">=2.32.5" },
-    { name = "systemd-python", specifier = ">=235" },
+    { name = "systemd-python", marker = "extra == 'systemd'", specifier = ">=235" },
 ]
+provides-extras = ["systemd"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest", specifier = ">=9.1.1" }]

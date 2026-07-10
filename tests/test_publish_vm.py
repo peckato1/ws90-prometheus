@@ -67,6 +67,33 @@ def test_post_passes_a_timeout(publisher, ws90, monkeypatch):
     assert all(c.get("timeout") is not None for c in calls)
 
 
+def test_extra_label_is_one_param_per_label(publisher, ws90, monkeypatch):
+    # extra_label must be a list so requests sends it as repeated query params;
+    # a single comma-joined string makes VictoriaMetrics store the model inside the
+    # id label value (id="15132,model=Fineoffset-WS90").
+    calls = []
+
+    def fake_post(url, **kwargs):
+        calls.append(kwargs["params"]["extra_label"])
+
+        class Resp:
+            status_code = 204
+
+            def raise_for_status(self):
+                pass
+
+        return Resp()
+
+    monkeypatch.setattr("rtl433_meteo.publish_vm.requests.post", fake_post)
+    publisher.data_callback(ws90)
+
+    for extra_label in calls:
+        assert isinstance(extra_label, list)
+        assert "id=15132" in extra_label
+        assert "model=Fineoffset-WS90" in extra_label
+        assert not any("," in label for label in extra_label)
+
+
 def test_vm_outage_is_swallowed(publisher, ws90, monkeypatch):
     def boom(*a, **k):
         raise requests.ConnectionError("VM is down")

@@ -19,6 +19,8 @@ class VictoriaMetricsPublisher:
         self.timeout = timeout
 
     def _post(self, labels, data, format):
+        # extra_label must be repeated once per label; a comma-joined string would be
+        # stored by VictoriaMetrics as a single label whose value contains the comma.
         resp = requests.post(
             urllib.parse.urljoin(self.vmbaseurl, "/api/v1/import/csv"),
             params={
@@ -55,7 +57,7 @@ class VictoriaMetricsPublisher:
     def data_callback(self, data):
         station = self.registry[data["model"]]
         dt = datetime.datetime.strptime(data["time"], "%Y-%m-%d %H:%M:%S")
-        extra_label = f"id={data['id']},model={data['model']}"
+        extra_label = [f"id={data['id']}", f"model={data['model']}"]
 
         # A VictoriaMetrics outage must not tear down the reader: log and drop the
         # sample, the next message will be pushed once VM recovers.

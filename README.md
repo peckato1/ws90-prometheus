@@ -37,7 +37,7 @@ $ rtl433-meteo <vmbaseurl> [--id=<id>]... [--cmd=<cmd>] [--log-level=<level>]
 
 The VictoriaMetrics base URL is required — every reading is pushed to its
 `/api/v1/import/csv` endpoint. By default the tool runs
-`rtl_433 -Y minmax -f 868.3M -F json`; use `--id` (repeatable, decimal or `0x`-hex)
+`rtl_433 -f 868.3M -F json`; use `--id` (repeatable, decimal or `0x`-hex)
 to restrict to specific device IDs. See `rtl433-meteo --help` for all options.
 
 ## Development

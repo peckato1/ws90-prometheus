@@ -7,11 +7,16 @@ from . import stations
 
 logger = logging.getLogger(__name__)
 
+# (connect, read) timeout in seconds. Bounds how long a stuck VictoriaMetrics can
+# block the reader thread before we give up on the sample and resume reading.
+DEFAULT_TIMEOUT = (5, 10)
+
 
 class VictoriaMetricsPublisher:
-    def __init__(self, vmbaseurl, registry=stations.STATIONS):
+    def __init__(self, vmbaseurl, registry=stations.STATIONS, timeout=DEFAULT_TIMEOUT):
         self.vmbaseurl = vmbaseurl
         self.registry = registry
+        self.timeout = timeout
 
     def _post(self, labels, data, format):
         resp = requests.post(
@@ -21,6 +26,7 @@ class VictoriaMetricsPublisher:
                 "extra_label": labels,
             },
             data=",".join(map(str, data)).strip(),
+            timeout=self.timeout,
         )
         resp.raise_for_status()
         logger.debug(f"rtl433: Posted data to VictoriaMetrics ({labels}): {data} (response: {resp.status_code})")

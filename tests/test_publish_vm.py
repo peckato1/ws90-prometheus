@@ -3,6 +3,7 @@
 import datetime
 
 import pytest
+import requests
 
 from rtl433_meteo import stations
 from rtl433_meteo.publish_vm import VictoriaMetricsPublisher
@@ -43,3 +44,33 @@ def test_ws90_info_csv_uses_firmware(publisher, ws90):
 
     assert columns[-1] == "3:label:firmware"
     assert line[-1] == 126
+
+
+def test_post_passes_a_timeout(publisher, ws90, monkeypatch):
+    calls = []
+
+    def fake_post(url, **kwargs):
+        calls.append(kwargs)
+
+        class Resp:
+            status_code = 204
+
+            def raise_for_status(self):
+                pass
+
+        return Resp()
+
+    monkeypatch.setattr("rtl433_meteo.publish_vm.requests.post", fake_post)
+    publisher.data_callback(ws90)
+
+    assert calls, "expected a POST to VictoriaMetrics"
+    assert all(c.get("timeout") is not None for c in calls)
+
+
+def test_vm_outage_is_swallowed(publisher, ws90, monkeypatch):
+    def boom(*a, **k):
+        raise requests.ConnectionError("VM is down")
+
+    monkeypatch.setattr("rtl433_meteo.publish_vm.requests.post", boom)
+    # Must not raise -- a dead VM cannot be allowed to kill the reader thread.
+    publisher.data_callback(ws90)

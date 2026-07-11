@@ -37,9 +37,16 @@ class VictoriaMetricsPublisher:
         columns = ["1:time:unix_s"]
         csv_line = [int(dt.timestamp())]
 
-        for i, field in enumerate(station.fields, 2):
-            columns.append(f"{i}:metric:{stations.METRICS[field.metric_key].name}")
+        # rtl_433 does not always transmit every field (e.g. a Vevor message
+        # without "uvi"). Skip absent keys instead of crashing; the CSV column
+        # index must stay contiguous, so track it separately from station.fields.
+        col = 2
+        for field in station.fields:
+            if field.json_key not in data:
+                continue
+            columns.append(f"{col}:metric:{stations.METRICS[field.metric_key].name}")
             csv_line.append(field.value(data))
+            col += 1
 
         return csv_line, columns
 
@@ -48,9 +55,13 @@ class VictoriaMetricsPublisher:
         columns = ["1:time:unix_s", f"2:metric:{name}"]
         csv_line = [int(dt.timestamp()), 1]
 
-        for i, key in enumerate(station.info_keys, 3):
-            columns.append(f"{i}:label:{key}")
+        col = 3
+        for key in station.info_keys:
+            if key not in data:
+                continue
+            columns.append(f"{col}:label:{key}")
             csv_line.append(data[key])
+            col += 1
 
         return csv_line, columns
 

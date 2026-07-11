@@ -29,6 +29,30 @@ def test_metrics_csv_uses_generic_names_and_transforms(publisher, ws90):
     assert row["meteo_rain_m"] == pytest.approx(0.8325)
 
 
+def test_metrics_csv_skips_fields_absent_from_message(publisher, vevor):
+    # rtl_433 does not always transmit every field; a real Vevor message arrived
+    # without "uvi", which must be skipped rather than raise KeyError.
+    del vevor["uvi"]
+    station = stations.STATIONS[vevor["model"]]
+    line, columns = publisher._construct_metrics(vevor, station, _dt(vevor))
+
+    names = [c.split(":")[-1] for c in columns]
+    assert "meteo_uvi" not in names
+    assert "meteo_temperature_celsius" in names  # other fields still present
+    # CSV column indices stay contiguous and aligned with the values.
+    assert [c.split(":")[0] for c in columns] == [str(i) for i in range(1, len(columns) + 1)]
+    assert len(line) == len(columns)
+
+
+def test_info_csv_skips_absent_info_key(publisher, vevor):
+    del vevor["channel"]
+    station = stations.STATIONS[vevor["model"]]
+    line, columns = publisher._construct_info(vevor, station, _dt(vevor))
+
+    assert columns == ["1:time:unix_s", "2:metric:meteo_info"]
+    assert line == [int(_dt(vevor).timestamp()), 1]
+
+
 def test_vevor_info_csv_uses_channel_not_firmware(publisher, vevor):
     station = stations.STATIONS[vevor["model"]]
     line, columns = publisher._construct_info(vevor, station, _dt(vevor))

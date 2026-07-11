@@ -24,7 +24,7 @@
         "label": "Data source",
         "query": "prometheus",
         "current": {},
-        "hide": 0,
+        "hide": 2,
         "refresh": 1
       },
       {
@@ -33,31 +33,8 @@
         "label": "Sun & Moon source",
         "query": "fetzerch-sunandmoon-datasource",
         "current": {},
-        "hide": 0,
+        "hide": 2,
         "refresh": 1
-      },
-      {
-        "name": "model",
-        "type": "query",
-        "label": "Model",
-        "datasource": {
-          "type": "prometheus",
-          "uid": "${DS_VM}"
-        },
-        "query": {
-          "query": "label_values(meteo_info, model)",
-          "refId": "var"
-        },
-        "refresh": 2,
-        "multi": true,
-        "includeAll": true,
-        "allValue": ".*",
-        "current": {
-          "text": "All",
-          "value": "$__all"
-        },
-        "sort": 1,
-        "hide": 0
       },
       {
         "name": "id",
@@ -134,7 +111,7 @@
             "uid": "${DS_VM}"
           },
           "editorMode": "code",
-          "expr": "meteo_temperature_celsius{model=~\"$model\", id=~\"$id\"}",
+          "expr": "meteo_temperature_celsius{id=~\"$id\"}",
           "legendFormat": "{{model}} \u00b7 {{id}}",
           "instant": false,
           "range": true,
@@ -211,7 +188,7 @@
             "uid": "${DS_VM}"
           },
           "editorMode": "code",
-          "expr": "meteo_humidity_ratio{model=~\"$model\", id=~\"$id\"}",
+          "expr": "meteo_humidity_ratio{id=~\"$id\"}",
           "legendFormat": "{{model}} \u00b7 {{id}}",
           "instant": false,
           "range": true,
@@ -284,7 +261,7 @@
             "uid": "${DS_VM}"
           },
           "editorMode": "code",
-          "expr": "meteo_wind_avg_speed{model=~\"$model\", id=~\"$id\"}",
+          "expr": "meteo_wind_avg_speed{id=~\"$id\"}",
           "legendFormat": "{{model}} \u00b7 {{id}}",
           "instant": false,
           "range": true,
@@ -357,7 +334,7 @@
             "uid": "${DS_VM}"
           },
           "editorMode": "code",
-          "expr": "lag(meteo_battery_ok{model=~\"$model\", id=~\"$id\"}[24h])",
+          "expr": "lag(meteo_battery_ok{id=~\"$id\"}[24h])",
           "legendFormat": "{{model}} \u00b7 {{id}}",
           "instant": true,
           "range": false,
@@ -441,7 +418,7 @@
             "uid": "${DS_VM}"
           },
           "editorMode": "code",
-          "expr": "meteo_temperature_celsius{model=~\"$model\", id=~\"$id\"}",
+          "expr": "meteo_temperature_celsius{id=~\"$id\"}",
           "legendFormat": "{{model}} \u00b7 {{id}}",
           "instant": false,
           "range": true,
@@ -531,7 +508,7 @@
             "uid": "${DS_VM}"
           },
           "editorMode": "code",
-          "expr": "meteo_humidity_ratio{model=~\"$model\", id=~\"$id\"}",
+          "expr": "meteo_humidity_ratio{id=~\"$id\"}",
           "legendFormat": "{{model}} \u00b7 {{id}}",
           "instant": false,
           "range": true,
@@ -622,7 +599,7 @@
             "uid": "${DS_VM}"
           },
           "editorMode": "code",
-          "expr": "meteo_wind_avg_speed{model=~\"$model\", id=~\"$id\"}",
+          "expr": "meteo_wind_avg_speed{id=~\"$id\"}",
           "legendFormat": "avg \u00b7 {{model}} \u00b7 {{id}}",
           "instant": false,
           "range": true,
@@ -635,7 +612,7 @@
             "uid": "${DS_VM}"
           },
           "editorMode": "code",
-          "expr": "meteo_wind_gust_speed{model=~\"$model\", id=~\"$id\"}",
+          "expr": "meteo_wind_gust_speed{id=~\"$id\"}",
           "legendFormat": "gust \u00b7 {{model}} \u00b7 {{id}}",
           "instant": false,
           "range": true,
@@ -721,7 +698,7 @@
             "uid": "${DS_VM}"
           },
           "editorMode": "code",
-          "expr": "meteo_wind_dir_degrees{model=~\"$model\", id=~\"$id\"}",
+          "expr": "meteo_wind_dir_degrees{id=~\"$id\"}",
           "legendFormat": "{{model}} \u00b7 {{id}}",
           "instant": false,
           "range": true,
@@ -782,7 +759,7 @@
             "uid": "${DS_VM}"
           },
           "editorMode": "code",
-          "expr": "meteo_wind_dir_degrees{model=~\"$model\", id=~\"$id\"}",
+          "expr": "meteo_wind_dir_degrees{id=~\"$id\"}",
           "legendFormat": "{{model}} \u00b7 {{id}}",
           "instant": false,
           "range": true,
@@ -949,7 +926,7 @@
             "uid": "${DS_VM}"
           },
           "editorMode": "code",
-          "expr": "increase(meteo_rain_m{model=~\"$model\", id=~\"$id\"}[1h]) * 1000",
+          "expr": "increase(meteo_rain_m{id=~\"$id\"}[1h]) * 1000",
           "legendFormat": "{{model}} \u00b7 {{id}}",
           "instant": false,
           "range": true,
@@ -1040,7 +1017,7 @@
             "uid": "${DS_VM}"
           },
           "editorMode": "code",
-          "expr": "meteo_light_lux{model=~\"$model\", id=~\"$id\"}",
+          "expr": "meteo_light_lux{id=~\"$id\"}",
           "legendFormat": "lux \u00b7 {{model}} \u00b7 {{id}}",
           "instant": false,
           "range": true,
@@ -1069,7 +1046,7 @@
             "uid": "${DS_VM}"
           },
           "editorMode": "code",
-          "expr": "meteo_uvi{model=~\"$model\", id=~\"$id\"}",
+          "expr": "meteo_uvi{id=~\"$id\"}",
           "legendFormat": "UV \u00b7 {{model}} \u00b7 {{id}}",
           "instant": false,
           "range": true,
@@ -1314,7 +1291,7 @@
             "uid": "${DS_VM}"
           },
           "editorMode": "code",
-          "expr": "meteo_battery_ok{model=~\"$model\", id=~\"$id\"}",
+          "expr": "meteo_battery_ok{id=~\"$id\"}",
           "legendFormat": "{{model}} \u00b7 {{id}}",
           "instant": false,
           "range": true,
@@ -1385,7 +1362,7 @@
             "uid": "${DS_VM}"
           },
           "editorMode": "code",
-          "expr": "meteo_battery_volts{model=~\"$model\", id=~\"$id\"}",
+          "expr": "meteo_battery_volts{id=~\"$id\"}",
           "legendFormat": "battery \u00b7 {{model}} \u00b7 {{id}}",
           "instant": false,
           "range": true,
@@ -1398,7 +1375,7 @@
             "uid": "${DS_VM}"
           },
           "editorMode": "code",
-          "expr": "meteo_supercap_volts{model=~\"$model\", id=~\"$id\"}",
+          "expr": "meteo_supercap_volts{id=~\"$id\"}",
           "legendFormat": "supercap \u00b7 {{model}} \u00b7 {{id}}",
           "instant": false,
           "range": true,
@@ -1484,7 +1461,7 @@
             "uid": "${DS_VM}"
           },
           "editorMode": "code",
-          "expr": "meteo_info{model=~\"$model\", id=~\"$id\"}",
+          "expr": "meteo_info{id=~\"$id\"}",
           "legendFormat": "",
           "instant": true,
           "range": false,
@@ -1548,7 +1525,7 @@
             "uid": "${DS_VM}"
           },
           "editorMode": "code",
-          "expr": "lag(meteo_battery_ok{model=~\"$model\", id=~\"$id\"}[24h]) < bool 120",
+          "expr": "lag(meteo_battery_ok{id=~\"$id\"}[24h]) < bool 120",
           "legendFormat": "{{model}} · {{id}}",
           "instant": false,
           "range": true,

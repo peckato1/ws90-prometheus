@@ -1590,6 +1590,179 @@
         },
         "overrides": []
       }
+    },
+    {
+      "type": "timeseries",
+      "id": 22,
+      "title": "Frequency",
+      "description": "Signal frequency reported by rtl_433 with \"-M level\", per device. FSK devices report two frequencies (freq1/freq2). Empty if rtl_433 runs without \"-M level\". Drawn as points -- one per received packet.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_VM}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 61,
+        "w": 24,
+        "h": 12
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_VM}"
+          },
+          "editorMode": "code",
+          "expr": "meteo_freq_mhz{id=~\"$id\"}",
+          "legendFormat": "freq · {{model}} · {{id}}",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_VM}"
+          },
+          "editorMode": "code",
+          "expr": "meteo_freq2_mhz{id=~\"$id\"}",
+          "legendFormat": "freq2 · {{model}} · {{id}}",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "last",
+            "min",
+            "max",
+            "mean"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 3,
+          "custom": {
+            "drawStyle": "points",
+            "lineWidth": 0,
+            "fillOpacity": 0,
+            "showPoints": "always",
+            "pointSize": 6,
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "axisLabel": "MHz"
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "type": "timeseries",
+      "id": 23,
+      "title": "Signal (dBm)",
+      "description": "Radio link quality reported by rtl_433 with \"-M level\": received signal strength (RSSI), signal-to-noise ratio and noise floor, per device. Empty if rtl_433 runs without \"-M level\". Drawn as points -- one per received packet.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_VM}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 73,
+        "w": 24,
+        "h": 12
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_VM}"
+          },
+          "editorMode": "code",
+          "expr": "meteo_rssi_db{id=~\"$id\"}",
+          "legendFormat": "rssi · {{model}} · {{id}}",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_VM}"
+          },
+          "editorMode": "code",
+          "expr": "meteo_snr_db{id=~\"$id\"}",
+          "legendFormat": "snr · {{model}} · {{id}}",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_VM}"
+          },
+          "editorMode": "code",
+          "expr": "meteo_noise_db{id=~\"$id\"}",
+          "legendFormat": "noise · {{model}} · {{id}}",
+          "instant": false,
+          "range": true,
+          "format": "time_series",
+          "refId": "C"
+        }
+      ],
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "last",
+            "min",
+            "max",
+            "mean"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 1,
+          "custom": {
+            "drawStyle": "points",
+            "lineWidth": 0,
+            "fillOpacity": 0,
+            "showPoints": "always",
+            "pointSize": 6,
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "axisLabel": "dBm"
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      }
     }
   ]
 }

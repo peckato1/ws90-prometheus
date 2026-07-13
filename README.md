@@ -137,7 +137,9 @@ Both units default to `http://localhost:8428`; change it for a remote VictoriaMe
 [`grafana/rtl433-meteo.json`](grafana/rtl433-meteo.json) is a ready-to-import
 dashboard covering both stations: current conditions, wind (speed/gust + a
 compass-style direction and cardinal heading), temperature, humidity, light, UV,
-hourly rainfall, and a power/health row (battery, voltages, device inventory).
+hourly rainfall, and a power/health row (battery, voltages, device inventory,
+connectivity heartbeat, and two radio scatter charts — frequency and signal
+RSSI/SNR/noise, both from `-M level`).
 
 It queries VictoriaMetrics through its Prometheus-compatible API. Import it via
 **Dashboards → New → Import → Upload JSON**, then pick your VictoriaMetrics

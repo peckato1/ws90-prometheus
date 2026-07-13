@@ -41,7 +41,7 @@ class VictoriaMetricsPublisher:
         # without "uvi"). Skip absent keys instead of crashing; the CSV column
         # index must stay contiguous, so track it separately from station.fields.
         col = 2
-        for field in station.fields:
+        for field in (*station.fields, *stations.COMMON_FIELDS):
             if field.json_key not in data:
                 continue
             columns.append(f"{col}:metric:{stations.METRICS[field.metric_key].name}")
@@ -73,8 +73,9 @@ class VictoriaMetricsPublisher:
         # A VictoriaMetrics outage must not tear down the reader: log and drop the
         # sample, the next message will be pushed once VM recovers.
         try:
-            self._post(extra_label, *self._construct_metrics(data, station, dt))
+            metrics_line, metrics_columns = self._construct_metrics(data, station, dt)
+            self._post(extra_label, metrics_line, metrics_columns)
             self._post(extra_label, *self._construct_info(data, station, dt))
-            logger.info("vm: Pushed %s id=%s (%d metrics)", data["model"], data["id"], len(station.fields))
+            logger.info("vm: Pushed %s id=%s (%d metrics)", data["model"], data["id"], len(metrics_columns) - 1)
         except requests.RequestException as e:
             logger.error(f"vm: Failed to push to VictoriaMetrics ({extra_label}): {e}")

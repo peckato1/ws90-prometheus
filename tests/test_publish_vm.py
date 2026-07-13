@@ -29,6 +29,43 @@ def test_metrics_csv_uses_generic_names_and_transforms(publisher, ws90):
     assert row["meteo_rain_m"] == pytest.approx(0.8325)
 
 
+def test_metrics_csv_includes_fsk_radio_level_fields(publisher, ws90):
+    # rtl_433 "-M level" attaches signal/frequency fields to every message; FSK
+    # devices (WS90) report freq1/freq2, mapped to meteo_freq_mhz / meteo_freq2_mhz.
+    station = stations.STATIONS[ws90["model"]]
+    line, columns = publisher._construct_metrics(ws90, station, _dt(ws90))
+
+    row = dict(zip((c.split(":")[-1] for c in columns[1:]), line[1:]))
+    assert row["meteo_rssi_db"] == pytest.approx(-0.108)
+    assert row["meteo_snr_db"] == pytest.approx(25.930)
+    assert row["meteo_noise_db"] == pytest.approx(-26.038)
+    assert row["meteo_freq_mhz"] == pytest.approx(868.285)  # from freq1
+    assert row["meteo_freq2_mhz"] == pytest.approx(868.320)
+
+
+def test_metrics_csv_maps_single_ask_freq(publisher, vevor):
+    # OOK/ASK devices (Vevor) report a single freq, mapped to meteo_freq_mhz.
+    station = stations.STATIONS[vevor["model"]]
+    line, columns = publisher._construct_metrics(vevor, station, _dt(vevor))
+
+    names = [c.split(":")[-1] for c in columns]
+    row = dict(zip((c.split(":")[-1] for c in columns[1:]), line[1:]))
+    assert row["meteo_freq_mhz"] == pytest.approx(868.298)
+    assert "meteo_freq2_mhz" not in names  # no freq2 in an ASK message
+
+
+def test_radio_fields_are_skipped_without_level_reporting(publisher, ws90):
+    # Without "-M level" rtl_433 emits no radio fields; they must simply be absent.
+    for key in ("rssi", "snr", "noise", "freq", "freq1", "freq2", "mod"):
+        ws90.pop(key, None)
+    station = stations.STATIONS[ws90["model"]]
+    line, columns = publisher._construct_metrics(ws90, station, _dt(ws90))
+
+    names = [c.split(":")[-1] for c in columns]
+    assert not any(n.startswith("meteo_rssi") or n.startswith("meteo_freq") for n in names)
+    assert [c.split(":")[0] for c in columns] == [str(i) for i in range(1, len(columns) + 1)]
+
+
 def test_metrics_csv_skips_fields_absent_from_message(publisher, vevor):
     # rtl_433 does not always transmit every field; a real Vevor message arrived
     # without "uvi", which must be skipped rather than raise KeyError.

@@ -22,6 +22,12 @@ SAMPLE_VEVOR = {
     "uvi": 0.000,
     "light_lux": 500,
     "mic": "CHECKSUM",
+    # Radio level ("-M level"). OOK/ASK devices report a single freq.
+    "mod": "ASK",
+    "freq": 868.298,
+    "rssi": -0.523,
+    "snr": 22.145,
+    "noise": -22.668,
 }
 
 SAMPLE_WS90 = {
@@ -44,6 +50,13 @@ SAMPLE_WS90 = {
     "firmware": 126,
     "data": "3fff8ccddc------bac2ffaffa0000",
     "mic": "CRC",
+    # Radio level ("-M level"). FSK devices report freq1/freq2.
+    "mod": "FSK",
+    "freq1": 868.285,
+    "freq2": 868.320,
+    "rssi": -0.108,
+    "snr": 25.930,
+    "noise": -26.038,
 }
 
 

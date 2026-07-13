@@ -11,7 +11,8 @@ vmbaseurl="http://localhost:8428"
 
 # Extra options passed to rtl433-meteo (see: rtl433-meteo --help). Examples:
 #   restrict to your own device IDs:  --id 63735 --id 15132
-#   override the rtl_433 command:     --cmd "rtl_433 -f 868.3M -F json"
+#   override the rtl_433 command:     --cmd "rtl_433 -f 868.3M -F json -s 1024k -M level"
+# ("-M level" adds the radio metrics: RSSI, SNR, noise, frequency. Drop it to skip them.)
 rtl433_meteo_opts="--log-level info"
 
 # User to run the daemon as. It must be able to access the RTL-SDR USB device

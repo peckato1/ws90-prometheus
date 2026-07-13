@@ -16,6 +16,11 @@ def test_every_field_maps_to_a_known_metric():
             assert field.metric_key in stations.METRICS
 
 
+def test_every_common_radio_field_maps_to_a_known_metric():
+    for field in stations.COMMON_FIELDS:
+        assert field.metric_key in stations.METRICS
+
+
 def test_ws90_units(ws90):
     m = _mapped(ws90)
     assert m["temperature_celsius"] == 21.5

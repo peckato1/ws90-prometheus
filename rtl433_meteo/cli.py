@@ -15,7 +15,7 @@ Options:
     --id=<id>               Device ID. Can be decimal or hex (prefix with 0x). Can specify multiple times. If not specified, all devices are being monitored.
     --log-level=<level>     Log level (debug, info, warning, error) [default: info]
     --log=<systemd|stderr>  Log to systemd journal or stderr [default: stderr]
-    --cmd=<cmd>             Command to run [default: rtl_433 -f 868.3M -F json -s 1024k]
+    --cmd=<cmd>             Command to run [default: rtl_433 -f 868.3M -F json -s 1024k -M level]
     --help                  Show this screen
 """
 

@@ -20,6 +20,15 @@ always exported in m/s, rain in metres), so the same metric is comparable across
 stations. Model-specific details (firmware, channel) are carried by the `meteo_info`
 metric.
 
+### Radio / signal metrics
+
+When `rtl_433` runs with `-M level` (included in the default command), every message
+also carries radio-level fields, exported for all stations as `meteo_rssi_db`,
+`meteo_snr_db`, `meteo_noise_db`, and frequency (`meteo_freq_mhz`, plus
+`meteo_freq2_mhz` for FSK devices that report two frequencies). These are common to
+every model — see `COMMON_FIELDS` in `rtl433_meteo/stations.py` — and are simply
+absent (nothing is exported) if you run `rtl_433` without `-M level`.
+
 ### Adding a station
 
 1. Add a `Station(...)` entry to `STATIONS` in `rtl433_meteo/stations.py`, mapping the
@@ -37,8 +46,9 @@ $ rtl433-meteo <vmbaseurl> [--id=<id>]... [--cmd=<cmd>] [--log-level=<level>]
 
 The VictoriaMetrics base URL is required — every reading is pushed to its
 `/api/v1/import/csv` endpoint. By default the tool runs
-`rtl_433 -f 868.3M -F json -s 1024k`; use `--id` (repeatable, decimal or `0x`-hex)
-to restrict to specific device IDs. See `rtl433-meteo --help` for all options.
+`rtl_433 -f 868.3M -F json -s 1024k -M level` (the `-M level` flag adds the radio
+metrics above); use `--id` (repeatable, decimal or `0x`-hex) to restrict to specific
+device IDs. See `rtl433-meteo --help` for all options.
 
 ## Development
 

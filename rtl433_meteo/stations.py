@@ -67,7 +67,30 @@ METRICS: dict[str, Metric] = {
     "light_lux": Metric("meteo_light_lux", "Light in lux"),
     "rain_m": Metric("meteo_rain_m", "Total rain in metres"),
     "rain_start": Metric("meteo_rain_start", "Rain start info"),
+    # Radio/signal level, reported by rtl_433 for every message when run with
+    # "-M level". Not station-specific -- see COMMON_FIELDS below.
+    "rssi_db": Metric("meteo_rssi_db", "Received signal strength (RSSI) in dB"),
+    "snr_db": Metric("meteo_snr_db", "Signal-to-noise ratio in dB"),
+    "noise_db": Metric("meteo_noise_db", "Noise floor level in dB"),
+    "freq_mhz": Metric("meteo_freq_mhz", "Signal frequency in MHz"),
+    "freq2_mhz": Metric("meteo_freq2_mhz", "Second FSK frequency in MHz"),
 }
+
+# Radio-level fields that rtl_433 attaches to every decoded message (regardless of
+# model) when run with "-M level". Shared by all stations, so they live here rather
+# than being duplicated into each Station. Publishers append these to every station's
+# fields; absent keys are skipped as usual, so this is a no-op without "-M level".
+#
+# A message carries either "freq" (OOK/ASK) or "freq1"+"freq2" (FSK), never all three,
+# so mapping both "freq" and "freq1" onto meteo_freq_mhz cannot collide in practice.
+COMMON_FIELDS: tuple[Field, ...] = (
+    Field("rssi", "rssi_db"),
+    Field("snr", "snr_db"),
+    Field("noise", "noise_db"),
+    Field("freq", "freq_mhz"),
+    Field("freq1", "freq_mhz"),
+    Field("freq2", "freq2_mhz"),
+)
 
 # Info metric carrying per-model textual details (firmware, channel, ...). Each
 # station contributes only the ``info_keys`` it actually reports.

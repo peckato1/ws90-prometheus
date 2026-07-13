@@ -30,9 +30,27 @@ def _device_id(device_ids):
     return random.choice(device_ids) if device_ids else random.randint(0, 0xFFFFFF)
 
 
+def _radio(fsk):
+    """Radio-level fields rtl_433 emits with "-M level". FSK devices report
+    freq1/freq2, OOK/ASK devices a single freq."""
+    fields = {
+        "mod": "FSK" if fsk else "ASK",
+        "rssi": round(random.uniform(-20, -0.1), 3),
+        "snr": round(random.uniform(5, 40), 3),
+        "noise": round(random.uniform(-30, -15), 3),
+    }
+    if fsk:
+        fields["freq1"] = round(random.uniform(868.2, 868.4), 5)
+        fields["freq2"] = round(random.uniform(868.2, 868.4), 5)
+    else:
+        fields["freq"] = round(random.uniform(868.2, 868.4), 5)
+    return fields
+
+
 def ws90_data(device_ids):
     battery_mv = random.randint(1000, 3000)
     return {
+        **_radio(fsk=True),
         "time": _now(),
         "model": "Fineoffset-WS90",
         "id": _device_id(device_ids),
@@ -57,6 +75,7 @@ def ws90_data(device_ids):
 
 def vevor_data(device_ids):
     return {
+        **_radio(fsk=False),
         "time": _now(),
         "model": "Vevor-7in1",
         "id": _device_id(device_ids),
